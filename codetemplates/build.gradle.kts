@@ -18,6 +18,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("com.mojang:datafixerupper:8.0.16")
     implementation("com.google.code.gson:gson:2.13.1")
+    implementation("org.java-websocket:Java-WebSocket:1.6.0")
 }
 
 tasks.test {

@@ -4,6 +4,7 @@ import dev.akarah.codetemplate.blocks.PlayerAction;
 import dev.akarah.codetemplate.blocks.PlayerEvent;
 import dev.akarah.codetemplate.blocks.types.Args;
 import dev.akarah.codetemplate.blocks.types.SelectionTarget;
+import dev.akarah.codetemplate.codeclient.CodeClientSend;
 import dev.akarah.codetemplate.template.CodeTemplate;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.varitem.VarComponent;
@@ -18,6 +19,10 @@ public class Main {
                 "",
                 "1",
                 new CodeTemplate(List.of(
+                        new PlayerEvent(
+                                "Join",
+                                new Args(List.of())
+                        ),
                         new PlayerAction(
                                 "SendMessage",
                                 new Args(List.of(
@@ -31,7 +36,8 @@ public class Main {
                 ))
         );
 
-        System.out.println(template.toFlatJson());
-        System.out.println(template.toGzipJson());
+        CodeClientSend.of()
+                .push(template.gzip())
+                .finish();
     }
 }
