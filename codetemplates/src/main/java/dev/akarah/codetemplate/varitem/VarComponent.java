@@ -5,7 +5,7 @@ import com.mojang.serialization.codecs.RecordCodecBuilder;
 
 public record VarComponent(String name) implements VarItem {
     public static Codec<VarComponent> CODEC = RecordCodecBuilder.create(instance -> instance.group(
-            Codec.STRING.fieldOf("name").forGetter(VarComponent::getId)
+            Codec.STRING.fieldOf("name").forGetter(VarComponent::name)
     ).apply(instance, VarComponent::new));
 
     @Override
