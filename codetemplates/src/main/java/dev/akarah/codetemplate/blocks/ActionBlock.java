@@ -10,6 +10,8 @@ public interface ActionBlock extends TemplateBlock {
             ActionBlock::getBlockId,
             id -> switch(id) {
                 case "else" -> Else.CODEC;
+                case "player_action" -> PlayerAction.CODEC;
+                case "event" -> PlayerEvent.CODEC;
                 default -> null;
             }
     );
