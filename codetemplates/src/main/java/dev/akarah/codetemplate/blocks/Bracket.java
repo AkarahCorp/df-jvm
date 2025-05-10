@@ -3,6 +3,7 @@ package dev.akarah.codetemplate.blocks;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
+import dev.akarah.codetemplate.template.TemplateBlock;
 
 public record Bracket(Direction direction, Type type) implements TemplateBlock {
     public static MapCodec<Bracket> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(

@@ -1,7 +1,9 @@
-package dev.akarah.codetemplate.blocks;
+package dev.akarah.codetemplate.template;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.MapCodec;
+import dev.akarah.codetemplate.blocks.ActionBlock;
+import dev.akarah.codetemplate.blocks.Bracket;
 
 public interface TemplateBlock {
     MapCodec<TemplateBlock> ROOT_CODEC = Codec.STRING.dispatchMap(

@@ -1,8 +1,7 @@
-package dev.akarah.codetemplate;
+package dev.akarah.codetemplate.template;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
-import dev.akarah.codetemplate.blocks.TemplateBlock;
 
 import java.util.List;
 

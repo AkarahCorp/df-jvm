@@ -1,6 +1,5 @@
-package dev.akarah.codetemplate;
+package dev.akarah.codetemplate.template;
 
-import com.mojang.datafixers.util.Pair;
 import com.mojang.serialization.*;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 

@@ -1,4 +1,4 @@
-package dev.akarah.codetemplate;
+package dev.akarah.codetemplate.template;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.JsonOps;

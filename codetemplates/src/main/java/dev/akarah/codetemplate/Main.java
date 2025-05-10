@@ -1,8 +1,9 @@
 package dev.akarah.codetemplate;
 
-import com.mojang.serialization.JsonOps;
 import dev.akarah.codetemplate.blocks.Bracket;
 import dev.akarah.codetemplate.blocks.Else;
+import dev.akarah.codetemplate.template.CodeTemplate;
+import dev.akarah.codetemplate.template.CodeTemplateData;
 
 import java.util.List;
 
