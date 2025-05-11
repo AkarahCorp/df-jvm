@@ -59,6 +59,17 @@ public class CodeClientSend {
         }
 
         @Override
+        public void send(String text) {
+            super.send(text);
+            System.out.println("<- " + text);
+            try {
+                Thread.sleep(2);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
         public void onMessage(String s) {
             System.out.println("-> " + s);
             if(s.equals("auth")) {
@@ -67,7 +78,6 @@ public class CodeClientSend {
                 this.send("place");
                 this.send("place compact");
                 for(var entry : this.sender.codeTemplateDatas) {
-                    System.out.println("<- " + entry.code());
                     this.send("place " + entry.code());
                 }
                 this.send("place go");
@@ -79,12 +89,12 @@ public class CodeClientSend {
 
         @Override
         public void onClose(int i, String s, boolean b) {
-
+            System.out.println("-> close (" + i + " | '" + s + "' | " + b + ")");
         }
 
         @Override
         public void onError(Exception e) {
-
+            System.out.println(e.toString());
         }
     }
 
