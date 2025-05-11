@@ -1,5 +1,6 @@
 package dev.akarah.dfjvm.compiler.compilation;
 
+import dev.akarah.codetemplate.blocks.CallFunctionAction;
 import dev.akarah.codetemplate.blocks.ControlAction;
 import dev.akarah.codetemplate.blocks.FunctionAction;
 import dev.akarah.codetemplate.blocks.SetVarAction;
@@ -13,14 +14,8 @@ import dev.akarah.codetemplate.varitem.VarString;
 import dev.akarah.codetemplate.varitem.VarVariable;
 
 import java.lang.classfile.*;
-import java.lang.classfile.attribute.RuntimeInvisibleTypeAnnotationsAttribute;
-import java.lang.classfile.attribute.RuntimeVisibleTypeAnnotationsAttribute;
-import java.lang.classfile.attribute.StackMapTableAttribute;
+import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.instruction.*;
-import java.lang.constant.ClassDesc;
-import java.lang.constant.DynamicConstantDesc;
-import java.lang.constant.MethodHandleDesc;
-import java.lang.constant.MethodTypeDesc;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,9 +31,7 @@ public class ClassCompiler {
 
     public List<CodeTemplateData> templatesForClassModel(ClassModel classModel) {
         var templates = new ArrayList<CodeTemplateData>();
-        classModel.methods().forEach(methodModel -> {
-            templates.add(templateForMethodModel(methodModel));
-        });
+        classModel.methods().forEach(methodModel -> templates.add(templateForMethodModel(methodModel)));
         return templates;
     }
 
@@ -48,34 +41,49 @@ public class ClassCompiler {
         var func = new FunctionAction(methodModel.methodName() + methodModel.methodTypeSymbol().descriptorString(), new Args(List.of()));
         codeBlocks.add(func);
 
-        methodModel.code().ifPresent(codeModel -> codeBlocks.addAll(compileCodeModel(codeModel)));
+        methodModel.code().ifPresent(codeModel -> codeBlocks.addAll(compileCodeModel(codeModel, methodModel)));
 
         return new CodeTemplateData("x", "x", "1", new CodeTemplate(codeBlocks));
     }
 
-    public List<TemplateBlock> compileCodeModel(CodeModel codeModel) {
+    public List<TemplateBlock> compileCodeModel(CodeModel codeModel, MethodModel methodModel) {
         var blocks = new ArrayList<TemplateBlock>();
-        var point = CompilerPoint.create();
+        var point = CompilerPoint.create(methodModel, codeModel);
         codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point)));
         return blocks;
     }
 
     public List<TemplateBlock> compileCodeElement(CodeElement codeElement, CompilerPoint point) {
         return switch (codeElement) {
-            case CustomAttribute<?> customAttribute -> List.of();
             case Instruction instruction -> compileInstruction(instruction, point);
-            case PseudoInstruction pseudoInstruction -> List.of();
-            case RuntimeInvisibleTypeAnnotationsAttribute runtimeInvisibleTypeAnnotationsAttribute -> List.of();
-            case RuntimeVisibleTypeAnnotationsAttribute runtimeVisibleTypeAnnotationsAttribute -> List.of();
-            case StackMapTableAttribute stackMapTableAttribute -> List.of();
+            case PseudoInstruction pseudoInstruction -> switch (pseudoInstruction) {
+                case LabelTarget labelTarget -> {
+                    var name = point.method().methodName() + point.method().methodTypeSymbol().descriptorString();
+                    var bci = 0;
+                    if(point.code() instanceof CodeAttribute codeAttribute) {
+                        bci = codeAttribute.labelToBci(labelTarget.label());
+                    } else {
+                        bci = -1;
+                    }
+                    yield List.of(
+                        new CallFunctionAction(
+                                name + "@" + bci,
+                                new Args(List.of())
+                        ),
+                        new FunctionAction(
+                                name + "@" + bci,
+                                new Args(List.of())
+                        )
+                    );
+                }
+                default -> List.of();
+            };
+            default -> List.of();
         };
     }
 
     public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point) {
         return switch (instruction) {
-            case ArrayLoadInstruction arrayLoadInstruction -> List.of();
-            case ArrayStoreInstruction arrayStoreInstruction ->  List.of();
-            case BranchInstruction branchInstruction ->  List.of();
             case ConstantInstruction constantInstruction -> switch (constantInstruction.constantValue()) {
                 case Double aDouble -> List.of(
                         point.pushStack(new VarNumber(aDouble.toString()))
@@ -92,46 +100,39 @@ public class ClassCompiler {
                 case String string -> List.of(
                         point.pushStack(new VarString(string))
                 );
-                case ClassDesc classDesc -> List.of();
-                case DynamicConstantDesc dynamicConstantDesc -> List.of();
-                case MethodHandleDesc methodHandleDesc -> List.of();
-                case MethodTypeDesc methodTypeDesc -> List.of();
+                default -> List.of();
             };
-            case ConvertInstruction convertInstruction ->  List.of();
-            case DiscontinuedInstruction discontinuedInstruction ->  List.of();
-            case FieldInstruction fieldInstruction -> List.of();
-            case IncrementInstruction incrementInstruction -> List.of();
-            case InvokeDynamicInstruction invokeDynamicInstruction -> List.of();
-            case InvokeInstruction invokeInstruction -> List.of();
             case LoadInstruction loadInstruction -> List.of(
                     point.pushStack(point.getLocal(loadInstruction.slot()))
             );
-            case LookupSwitchInstruction lookupSwitchInstruction -> List.of();
-            case MonitorInstruction monitorInstruction -> List.of();
-            case NewMultiArrayInstruction newMultiArrayInstruction -> List.of();
-            case NewObjectInstruction newObjectInstruction -> List.of();
-            case NewPrimitiveArrayInstruction newPrimitiveArrayInstruction -> List.of();
-            case NewReferenceArrayInstruction newReferenceArrayInstruction -> List.of();
-            case NopInstruction nopInstruction -> List.of();
-            case OperatorInstruction operatorInstruction -> List.of();
             case ReturnInstruction returnInstruction -> List.of(
                     new ControlAction("Return", new Args(List.of()))
             );
-            case StackInstruction stackInstruction -> List.of();
             case StoreInstruction storeInstruction -> List.of(
                     point.setLocal(storeInstruction.slot(), point.popStack())
             );
-            case TableSwitchInstruction tableSwitchInstruction -> List.of();
-            case ThrowInstruction throwInstruction -> List.of();
-            case TypeCheckInstruction typeCheckInstruction -> List.of();
+            default -> List.of();
         };
     }
 
     public static class CompilerPoint {
         AtomicInteger stackPointer = new AtomicInteger(0);
+        MethodModel associatedMethod;
+        CodeModel associatedCode;
 
-        public static CompilerPoint create() {
-            return new CompilerPoint();
+        public static CompilerPoint create(MethodModel methodModel, CodeModel codeModel) {
+            var cc = new CompilerPoint();
+            cc.associatedMethod = methodModel;
+            cc.associatedCode = codeModel;
+            return cc;
+        }
+
+        public MethodModel method() {
+            return this.associatedMethod;
+        }
+
+        public CodeModel code() {
+            return this.associatedCode;
         }
 
         public AtomicInteger stackPointer() {
@@ -143,7 +144,7 @@ public class ClassCompiler {
                     "=",
                     new Args(List.of(
                             new Args.Slot(
-                                    new VarVariable("stack[" + this.stackPointer().incrementAndGet() + "]", VarVariable.Scope.LINE),
+                                    new VarVariable("stack[%var(r_depth)][" + this.stackPointer().incrementAndGet() + "]", VarVariable.Scope.LOCAL),
                                     0
                             ),
                             new Args.Slot(varItem, 1)
@@ -152,7 +153,7 @@ public class ClassCompiler {
         }
 
         public VarItem popStack() {
-            return new VarVariable("stack[" + this.stackPointer().getAndDecrement() + "]", VarVariable.Scope.LINE);
+            return new VarVariable("stack[%var(r_depth)][" + this.stackPointer().getAndDecrement() + "]", VarVariable.Scope.LOCAL);
         }
 
         public SetVarAction setLocal(int local, VarItem varItem) {
@@ -160,7 +161,7 @@ public class ClassCompiler {
                     "=",
                     new Args(List.of(
                             new Args.Slot(
-                                    new VarVariable("local[" + local + "]", VarVariable.Scope.LINE),
+                                    new VarVariable("local[%var(r_depth)][" + local + "]", VarVariable.Scope.LOCAL),
                                     0
                             ),
                             new Args.Slot(varItem, 1)
@@ -169,7 +170,7 @@ public class ClassCompiler {
         }
 
         public VarItem getLocal(int local) {
-            return new VarVariable("local[" + local + "]", VarVariable.Scope.LINE);
+            return new VarVariable("local[%var(r_depth)][" + local + "]", VarVariable.Scope.LOCAL);
         }
     }
 }
