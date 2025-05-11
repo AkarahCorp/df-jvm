@@ -9,6 +9,9 @@ public interface VarItem {
             id -> {
                 var subCodec = switch(id) {
                     case "comp" -> VarComponent.CODEC;
+                    case "var" -> VarVariable.CODEC;
+                    case "num" -> VarNumber.CODEC;
+                    case "txt" -> VarString.CODEC;
                     default -> null;
                 };
                 if(subCodec == null) {

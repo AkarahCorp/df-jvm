@@ -13,7 +13,7 @@ public record FunctionAction(String data, Args args) implements ActionBlock {
 
     @Override
     public String getBlockId() {
-        return "function";
+        return "func";
     }
 
 }

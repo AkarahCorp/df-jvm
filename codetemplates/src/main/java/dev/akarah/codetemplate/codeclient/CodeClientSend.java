@@ -62,11 +62,7 @@ public class CodeClientSend {
         public void send(String text) {
             super.send(text);
             System.out.println("<- " + text);
-            try {
-                Thread.sleep(2);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+
         }
 
         @Override
@@ -75,7 +71,7 @@ public class CodeClientSend {
             if(s.equals("auth")) {
                 this.send("mode code");
                 this.send("clear");
-                this.send("place");
+
                 this.send("place compact");
                 for(var entry : this.sender.codeTemplateDatas) {
                     this.send("place " + entry.code());
