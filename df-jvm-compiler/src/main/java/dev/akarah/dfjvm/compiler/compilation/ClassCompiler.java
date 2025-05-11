@@ -31,24 +31,24 @@ public class ClassCompiler {
 
     public List<CodeTemplateData> templatesForClassModel(ClassModel classModel) {
         var templates = new ArrayList<CodeTemplateData>();
-        classModel.methods().forEach(methodModel -> templates.add(templateForMethodModel(methodModel)));
+        classModel.methods().forEach(methodModel -> templates.add(templateForMethodModel(methodModel, classModel)));
         return templates;
     }
 
-    public CodeTemplateData templateForMethodModel(MethodModel methodModel) {
+    public CodeTemplateData templateForMethodModel(MethodModel methodModel, ClassModel classModel) {
         var codeBlocks = new ArrayList<TemplateBlock>();
 
-        var func = new FunctionAction(methodModel.methodName() + methodModel.methodTypeSymbol().descriptorString(), new Args(List.of()));
+        var func = new FunctionAction(classModel.thisClass().asInternalName() + "#" + methodModel.methodName() + methodModel.methodTypeSymbol().descriptorString(), new Args(List.of()));
         codeBlocks.add(func);
 
-        methodModel.code().ifPresent(codeModel -> codeBlocks.addAll(compileCodeModel(codeModel, methodModel)));
+        methodModel.code().ifPresent(codeModel -> codeBlocks.addAll(compileCodeModel(codeModel, methodModel, classModel)));
 
         return new CodeTemplateData("x", "x", "1", new CodeTemplate(codeBlocks));
     }
 
-    public List<TemplateBlock> compileCodeModel(CodeModel codeModel, MethodModel methodModel) {
+    public List<TemplateBlock> compileCodeModel(CodeModel codeModel, MethodModel methodModel, ClassModel classModel) {
         var blocks = new ArrayList<TemplateBlock>();
-        var point = CompilerPoint.create(methodModel, codeModel);
+        var point = CompilerPoint.create(methodModel, codeModel, classModel);
         codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point)));
         return blocks;
     }
@@ -58,7 +58,7 @@ public class ClassCompiler {
             case Instruction instruction -> compileInstruction(instruction, point);
             case PseudoInstruction pseudoInstruction -> switch (pseudoInstruction) {
                 case LabelTarget labelTarget -> {
-                    var name = point.method().methodName() + point.method().methodTypeSymbol().descriptorString();
+                    var name = point.classModel().thisClass().asInternalName() + "#" + point.method().methodName() + point.method().methodTypeSymbol().descriptorString();
                     var bci = 0;
                     if(point.code() instanceof CodeAttribute codeAttribute) {
                         bci = codeAttribute.labelToBci(labelTarget.label());
@@ -105,7 +105,7 @@ public class ClassCompiler {
             case LoadInstruction loadInstruction -> List.of(
                     point.pushStack(point.getLocal(loadInstruction.slot()))
             );
-            case ReturnInstruction returnInstruction -> List.of(
+            case ReturnInstruction _ -> List.of(
                     new ControlAction("Return", new Args(List.of()))
             );
             case StoreInstruction storeInstruction -> List.of(
@@ -119,11 +119,13 @@ public class ClassCompiler {
         AtomicInteger stackPointer = new AtomicInteger(0);
         MethodModel associatedMethod;
         CodeModel associatedCode;
+        ClassModel associatedClass;
 
-        public static CompilerPoint create(MethodModel methodModel, CodeModel codeModel) {
+        public static CompilerPoint create(MethodModel methodModel, CodeModel codeModel, ClassModel classModel) {
             var cc = new CompilerPoint();
             cc.associatedMethod = methodModel;
             cc.associatedCode = codeModel;
+            cc.associatedClass = classModel;
             return cc;
         }
 
@@ -133,6 +135,10 @@ public class ClassCompiler {
 
         public CodeModel code() {
             return this.associatedCode;
+        }
+
+        public ClassModel classModel() {
+            return this.associatedClass;
         }
 
         public AtomicInteger stackPointer() {
