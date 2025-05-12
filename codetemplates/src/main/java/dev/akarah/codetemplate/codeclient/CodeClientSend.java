@@ -62,7 +62,11 @@ public class CodeClientSend {
         public void send(String text) {
             super.send(text);
             System.out.println("<- " + text);
-
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         @Override
