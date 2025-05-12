@@ -23,11 +23,17 @@ import java.util.function.Function;
 
 public class ClassCompiler {
     ClassData data;
+    ActionRegistry actionRegistry;
 
     public static ClassCompiler forData(ClassData data) {
         var cc = new ClassCompiler();
         cc.data = data;
         return cc;
+    }
+
+    public ClassCompiler withActionRegistry(ActionRegistry actionRegistry) {
+        this.actionRegistry = actionRegistry;
+        return this;
     }
 
     public List<CodeTemplateData> templatesForClassModel(ClassModel classModel) {
@@ -101,8 +107,8 @@ public class ClassCompiler {
 
     public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point) {
         return switch (instruction) {
-            case NewObjectInstruction newObjectInstruction -> {
-                var blocks = new ArrayList<>(point.allocateMemory("tmp"));
+            case NewObjectInstruction _ -> {
+                var blocks = new ArrayList<>(CompilerPoint.allocateMemory("tmp"));
                 blocks.add(point.pushStack(new VarString("%var(tmp)")));
                 blocks.add(new SetVarAction(
                     "CreateDict",
@@ -185,24 +191,31 @@ public class ClassCompiler {
                 }
 
                 for(var idx = 0; idx < invokeInstruction.typeSymbol().parameterCount(); idx++) {
-                    instructions.addAll(point.pushParameter(point.popStack(), idx + si));
+                    instructions.addAll(CompilerPoint.pushParameter(point.popStack(), idx + si));
                 }
                 if(invokeInstruction.opcode() != Opcode.INVOKESTATIC) {
-                    instructions.addAll(point.pushParameter(point.popStack(), 0));
+                    instructions.addAll(CompilerPoint.pushParameter(point.popStack(), 0));
                 }
-                instructions.add(point.recurseDeeper());
-                instructions.add(new CallFunctionAction(
-                        functionName,
-                        new Args(List.of())
-                ));
-                instructions.add(point.recurseHigher());
+                instructions.add(CompilerPoint.recurseDeeper());
+
+                if(this.actionRegistry.actionSuppliers.containsKey(functionName)) {
+                    instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).get());
+                } else {
+                    instructions.add(new CallFunctionAction(
+                            functionName,
+                            new Args(List.of())
+                    ));
+                }
+                instructions.add(CompilerPoint.recurseHigher());
+
+
                 if(!invokeInstruction.typeSymbol().returnType().descriptorString().equals("V")) {
                     instructions.addAll(point.pushReturnValue());
                 }
                 yield instructions;
             }
             case LoadInstruction loadInstruction -> List.of(
-                    point.pushStack(point.getLocal(loadInstruction.slot()))
+                    point.pushStack(CompilerPoint.getLocal(loadInstruction.slot()))
             );
             case ReturnInstruction _ -> List.of(
                     new SetVarAction(
@@ -215,7 +228,7 @@ public class ClassCompiler {
                     new ControlAction("Return", new Args(List.of()))
             );
             case StoreInstruction storeInstruction -> List.of(
-                    point.setLocal(storeInstruction.slot(), point.popStack())
+                    CompilerPoint.setLocal(storeInstruction.slot(), point.popStack())
             );
             case OperatorInstruction operatorInstruction -> {
                 Function<String, List<TemplateBlock>> binaryOp = action -> List.of(
@@ -300,7 +313,7 @@ public class ClassCompiler {
             );
         }
 
-        public SetVarAction recurseDeeper() {
+        public static SetVarAction recurseDeeper() {
             return new SetVarAction(
                     "+=",
                     new Args(List.of(
@@ -313,7 +326,7 @@ public class ClassCompiler {
             );
         }
 
-        public SetVarAction recurseHigher() {
+        public static SetVarAction recurseHigher() {
             return new SetVarAction(
                     "-=",
                     new Args(List.of(
@@ -326,7 +339,7 @@ public class ClassCompiler {
             );
         }
 
-        public List<TemplateBlock> pushParameter(VarItem varItem, int index) {
+        public static List<TemplateBlock> pushParameter(VarItem varItem, int index) {
             return List.of(
                     new SetVarAction(
                             "+",
@@ -367,7 +380,7 @@ public class ClassCompiler {
             return new VarVariable("stack[%var(r_depth)][" + this.stackPointer().getAndDecrement() + "]", VarVariable.Scope.LOCAL);
         }
 
-        public SetVarAction setLocal(int local, VarItem varItem) {
+        public static SetVarAction setLocal(int local, VarItem varItem) {
             return new SetVarAction(
                     "=",
                     new Args(List.of(
@@ -380,11 +393,11 @@ public class ClassCompiler {
             );
         }
 
-        public VarItem getLocal(int local) {
+        public static VarItem getLocal(int local) {
             return new VarVariable("local[%var(r_depth)][" + local + "]", VarVariable.Scope.LOCAL);
         }
 
-        public List<TemplateBlock> allocateMemory(String placeholderVariable) {
+        public static List<TemplateBlock> allocateMemory(String placeholderVariable) {
             return List.of(
                     new SetVarAction(
                             "+=",

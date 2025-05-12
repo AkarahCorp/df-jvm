@@ -3,8 +3,10 @@ package dev.akarah.dfjvm.compiler;
 import dev.akarah.codetemplate.codeclient.CodeClientSend;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.GzippedCodeTemplateData;
+import dev.akarah.dfjvm.compiler.compilation.ActionRegistry;
 import dev.akarah.dfjvm.compiler.compilation.ClassCompiler;
 import dev.akarah.dfjvm.compiler.compilation.ClassData;
+import dev.akarah.dfjvm.compiler.compilation.GenerateEvents;
 import dev.akarah.dfjvm.compiler.io.ClassFileFinder;
 
 import java.io.IOException;
@@ -24,7 +26,10 @@ public class Main {
         System.out.println(models);
 
         var data = ClassData.forClassModels(models);
-        var classCompiler = ClassCompiler.forData(data);
+
+        var actionRegistry = ActionRegistry.create().withPlayerActions();
+
+        var classCompiler = ClassCompiler.forData(data).withActionRegistry(actionRegistry);
 
         var templates = new ArrayList<CodeTemplateData>();
         models.forEach(model -> templates.addAll(classCompiler.templatesForClassModel(model)));
@@ -35,6 +40,10 @@ public class Main {
         for(var template : templates) {
             System.out.println(template.toFlatJson());
             cc.push(template.gzip());
+        }
+
+        for(var event : GenerateEvents.allPlayerEvents()) {
+            cc.push(event);
         }
         cc.finish();
     }
