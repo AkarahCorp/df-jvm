@@ -7,7 +7,7 @@ import dev.akarah.codetemplate.template.TemplateBlock;
 
 public record Bracket(Direction direction, Type type) implements TemplateBlock {
     public static MapCodec<Bracket> CODEC = RecordCodecBuilder.mapCodec(instance -> instance.group(
-            Direction.CODEC.fieldOf("direction").forGetter(Bracket::direction),
+            Direction.CODEC.fieldOf("direct").forGetter(Bracket::direction),
             Type.CODEC.fieldOf("type").forGetter(Bracket::type)
     ).apply(instance, Bracket::new));
 

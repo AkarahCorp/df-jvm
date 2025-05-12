@@ -1,5 +1,6 @@
 plugins {
     id("java")
+    id("com.gradleup.shadow") version "9.0.0-beta13"
 }
 
 group = "dev.akarah"
@@ -10,9 +11,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation(platform("org.junit:junit-bom:5.10.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    compileOnly(project(":df-jvm-api"))
+    implementation(project(":df-jvm-api"))
 }
 
 tasks.test {

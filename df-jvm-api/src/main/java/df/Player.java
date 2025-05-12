@@ -9,4 +9,6 @@ public abstract class Player {
     public abstract void damage(int health);
     public abstract void heal(int health);
     public abstract void setHealth(int health);
+
+    public abstract void teleport(Location location);
 }

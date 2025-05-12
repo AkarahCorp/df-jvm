@@ -1,23 +1,19 @@
 package dev.akarah.dfjvm.compiler.compilation;
 
-import dev.akarah.codetemplate.blocks.CallFunctionAction;
-import dev.akarah.codetemplate.blocks.ControlAction;
-import dev.akarah.codetemplate.blocks.FunctionAction;
-import dev.akarah.codetemplate.blocks.SetVarAction;
+import dev.akarah.codetemplate.blocks.*;
 import dev.akarah.codetemplate.blocks.types.Args;
+import dev.akarah.codetemplate.blocks.types.SelectionTarget;
 import dev.akarah.codetemplate.template.CodeTemplate;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateBlock;
-import dev.akarah.codetemplate.varitem.VarItem;
-import dev.akarah.codetemplate.varitem.VarNumber;
-import dev.akarah.codetemplate.varitem.VarString;
-import dev.akarah.codetemplate.varitem.VarVariable;
+import dev.akarah.codetemplate.varitem.*;
 
 import java.lang.classfile.*;
 import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.instruction.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -190,8 +186,16 @@ public class ClassCompiler {
                     si = 1;
                 }
 
+                var slot = si;
                 for(var idx = 0; idx < invokeInstruction.typeSymbol().parameterCount(); idx++) {
-                    instructions.addAll(CompilerPoint.pushParameter(point.popStack(), idx + si));
+                    var parameterSymbol = invokeInstruction.typeSymbol().parameterList().get(idx);
+                    instructions.addAll(CompilerPoint.pushParameter(point.popStack(), slot));
+
+                    if(parameterSymbol.descriptorString().equals("D") || parameterSymbol.descriptorString().equals("L")) {
+                        slot += 2;
+                    } else {
+                        slot += 1;
+                    }
                 }
                 if(invokeInstruction.opcode() != Opcode.INVOKESTATIC) {
                     instructions.addAll(CompilerPoint.pushParameter(point.popStack(), 0));
@@ -199,7 +203,7 @@ public class ClassCompiler {
                 instructions.add(CompilerPoint.recurseDeeper());
 
                 if(this.actionRegistry.actionSuppliers.containsKey(functionName)) {
-                    instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).get());
+                    instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).apply(point));
                 } else {
                     instructions.add(new CallFunctionAction(
                             functionName,
@@ -266,6 +270,96 @@ public class ClassCompiler {
                 );
                 default -> throw new RuntimeException("idk " + stackInstruction);
             };
+            case NewPrimitiveArrayInstruction newPrimitiveArrayInstruction -> {
+                var count = point.popStack();
+
+                var blocks = new ArrayList<>(CompilerPoint.allocateMemory("array_ptr_tmp"));
+                blocks.add(new SetVarAction(
+                        "CreateList",
+                        new Args(List.of(
+                                new Args.Slot(new VarVariable("memory/%var(array_ptr_tmp)", VarVariable.Scope.GAME), 0)
+                        ))
+                ));
+                blocks.add(new RepeatAction(
+                        "Multiple",
+                        new Args(List.of(
+                                new Args.Slot(count, 0)
+                        ))
+                ));
+                blocks.add(new Bracket(Bracket.Direction.OPEN, Bracket.Type.REPEAT));
+                blocks.add(new SetVarAction(
+                        "AppendValue",
+                        new Args(List.of(
+                                new Args.Slot(new VarVariable("memory/%var(array_ptr_tmp)", VarVariable.Scope.GAME), 0),
+                                new Args.Slot(new VarNumber("0"), 1)
+                        ))
+                ));
+                blocks.add(new Bracket(Bracket.Direction.CLOSE, Bracket.Type.REPEAT));
+                blocks.add(point.pushStack(new VarString("%var(array_ptr_tmp)")));
+                yield blocks;
+            }
+            case ArrayLoadInstruction arrayLoadInstruction -> {
+                var index = point.popStack();
+                var arrayRef = point.popStack();
+
+                yield List.of(
+                        new SetVarAction(
+                                "=",
+                                new Args(List.of(
+                                        new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
+                                        new Args.Slot(arrayRef, 1)
+                                ))
+                        ),
+                        new SetVarAction(
+                                "+",
+                                new Args(List.of(
+                                        new Args.Slot(new VarVariable("idx", VarVariable.Scope.LINE), 0),
+                                        new Args.Slot(index, 1),
+                                        new Args.Slot(new VarNumber("1"), 2)
+                                ))
+                        ),
+                        new SetVarAction(
+                                "GetListValue",
+                                new Args(List.of(
+                                        new Args.Slot(new VarVariable("out", VarVariable.Scope.LINE), 0),
+                                        new Args.Slot(new VarVariable("memory/%var(tmp)", VarVariable.Scope.GAME), 1),
+                                        new Args.Slot(new VarNumber("%var(idx)"), 2)
+                                ))
+                        ),
+                        point.pushStack(new VarVariable("out", VarVariable.Scope.LINE))
+                );
+            }
+            case ArrayStoreInstruction arrayStoreInstruction -> {
+                var value = point.popStack();
+                var index = point.popStack();
+                var arrayRef = point.popStack();
+
+                yield List.of(
+                        new SetVarAction(
+                                "=",
+                                new Args(List.of(
+                                        new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
+                                        new Args.Slot(arrayRef, 1)
+                                ))
+                        ),
+                        new SetVarAction(
+                                "+",
+                                new Args(List.of(
+                                        new Args.Slot(new VarVariable("idx", VarVariable.Scope.LINE), 0),
+                                        new Args.Slot(index, 1),
+                                        new Args.Slot(new VarNumber("1"), 2)
+                                ))
+                        ),
+                        new SetVarAction(
+                                "SetListValue",
+                                new Args(List.of(
+                                        new Args.Slot(new VarVariable("memory/%var(tmp)", VarVariable.Scope.GAME), 0),
+                                        new Args.Slot(new VarNumber("%var(idx)"), 1),
+                                        new Args.Slot(value, 2)
+                                ))
+                        )
+                );
+            }
             default -> List.of();
         };
     }
@@ -412,6 +506,16 @@ public class ClassCompiler {
                                     new Args.Slot(new VarString("ref@%var(memory/idx)"), 1)
                             ))
                     )
+            );
+        }
+
+        public static TemplateBlock setReturnValue(VarItem varItem) {
+            return new SetVarAction(
+                    "=",
+                    new Args(List.of(
+                            new Args.Slot(new VarVariable("stack[%var(r_depth)][returned]", VarVariable.Scope.LOCAL), 0),
+                            new Args.Slot(varItem, 1)
+                    ))
             );
         }
     }

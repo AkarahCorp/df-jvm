@@ -47,7 +47,8 @@ public class GenerateEvents {
 
     public static List<GzippedCodeTemplateData> allPlayerEvents() {
         return Stream.of(
-            generatePlayerEvent("Join", "df/Events#playerJoin(Ldf/Player;)V", List.of(SelectionTarget.DEFAULT))
+                generatePlayerEvent("Join", "df/Events#playerJoin(Ldf/Player;)V", List.of(SelectionTarget.DEFAULT)),
+                generatePlayerEvent("Leave", "df/Events#playerLeave(Ldf/Player;)V", List.of(SelectionTarget.DEFAULT))
         )
             .map(
                 x -> new CodeTemplateData(

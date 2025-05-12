@@ -12,6 +12,7 @@ public interface VarItem {
                     case "var" -> VarVariable.CODEC;
                     case "num" -> VarNumber.CODEC;
                     case "txt" -> VarString.CODEC;
+                    case "bl_tag" -> VarBlockTag.CODEC;
                     default -> null;
                 };
                 if(subCodec == null) {

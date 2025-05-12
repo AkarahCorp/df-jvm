@@ -63,7 +63,7 @@ public class CodeClientSend {
             super.send(text);
             System.out.println("<- " + text);
             try {
-                Thread.sleep(50);
+                Thread.sleep(20);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -76,7 +76,7 @@ public class CodeClientSend {
                 this.send("mode code");
                 this.send("clear");
 
-                this.send("place compact");
+                this.send("place");
                 for(var entry : this.sender.codeTemplateDatas) {
                     this.send("place " + entry.code());
                 }
