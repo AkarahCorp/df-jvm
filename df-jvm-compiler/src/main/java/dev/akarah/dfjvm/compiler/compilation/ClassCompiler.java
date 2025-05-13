@@ -2,7 +2,6 @@ package dev.akarah.dfjvm.compiler.compilation;
 
 import dev.akarah.codetemplate.blocks.*;
 import dev.akarah.codetemplate.blocks.types.Args;
-import dev.akarah.codetemplate.blocks.types.SelectionTarget;
 import dev.akarah.codetemplate.template.CodeTemplate;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateBlock;
@@ -13,8 +12,6 @@ import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.instruction.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 public class ClassCompiler {
@@ -52,13 +49,14 @@ public class ClassCompiler {
     public List<TemplateBlock> compileCodeModel(CodeModel codeModel, MethodModel methodModel, ClassModel classModel) {
         var blocks = new ArrayList<TemplateBlock>();
         var point = CompilerPoint.create(methodModel, codeModel, classModel);
-        codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point)));
+        var si = new StackInfo();
+        codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point, si)));
         return blocks;
     }
 
-    public List<TemplateBlock> compileCodeElement(CodeElement codeElement, CompilerPoint point) {
+    public List<TemplateBlock> compileCodeElement(CodeElement codeElement, CompilerPoint point, StackInfo stackInfo) {
         return switch (codeElement) {
-            case Instruction instruction -> compileInstruction(instruction, point, true);
+            case Instruction instruction -> compileInstruction(instruction, point, stackInfo, true);
             case PseudoInstruction pseudoInstruction -> switch (pseudoInstruction) {
                 case LabelTarget labelTarget -> {
                     var name = point.classModel().thisClass().asInternalName() + "#" + point.method().methodName() + point.method().methodTypeSymbol().descriptorString();
@@ -85,8 +83,8 @@ public class ClassCompiler {
         };
     }
 
-    public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point, boolean debug) {
-        var out = compileInstruction(instruction, point);
+    public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point, StackInfo stackInfo, boolean debug) {
+        var out = compileInstruction(instruction, point, stackInfo);
         if(debug) {
             var list = new ArrayList<>(out);
             list.add(new ControlAction(
@@ -101,18 +99,18 @@ public class ClassCompiler {
         }
     }
 
-    public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point) {
+    public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point, StackInfo stackInfo) {
         return switch (instruction) {
             case NewObjectInstruction _ -> {
-                var blocks = new ArrayList<>(CompilerPoint.allocateMemory("tmp"));
-                blocks.add(point.pushStack(new VarString("%var(tmp)")));
+                var blocks = new ArrayList<>(StackInfo.allocateMemory("tmp"));
+                blocks.add(stackInfo.pushStack(new VarString("%var(tmp)")));
                 yield blocks;
             }
             case FieldInstruction fieldInstruction -> switch (fieldInstruction.opcode()) {
                 case GETFIELD -> {
-                    var objectRef = point.popStack();
+                    var objectRef = stackInfo.popStack();
                     yield List.of(
-                            point.pushStack(
+                            stackInfo.pushStack(
                                     new VarVariable(
                                             "memory/%var(" + objectRef.name() + ")." + fieldInstruction.field().name().stringValue(),
                                             VarVariable.Scope.GAME
@@ -121,8 +119,8 @@ public class ClassCompiler {
                     );
                 }
                 case PUTFIELD -> {
-                    var newValue = point.popStack();
-                    var objectRef = point.popStack();
+                    var newValue = stackInfo.popStack();
+                    var objectRef = stackInfo.popStack();
                     yield List.of(
                             new SetVarAction(
                                     "=",
@@ -137,19 +135,19 @@ public class ClassCompiler {
             };
             case ConstantInstruction constantInstruction -> switch (constantInstruction.constantValue()) {
                 case Double aDouble -> List.of(
-                        point.pushStack(new VarNumber(aDouble.toString()))
+                        stackInfo.pushStack(new VarNumber(aDouble.toString()))
                 );
                 case Float aFloat -> List.of(
-                        point.pushStack(new VarNumber(aFloat.toString()))
+                        stackInfo.pushStack(new VarNumber(aFloat.toString()))
                 );
                 case Integer integer -> List.of(
-                        point.pushStack(new VarNumber(integer.toString()))
+                        stackInfo.pushStack(new VarNumber(integer.toString()))
                 );
                 case Long aLong -> List.of(
-                        point.pushStack(new VarNumber(aLong.toString()))
+                        stackInfo.pushStack(new VarNumber(aLong.toString()))
                 );
                 case String string -> List.of(
-                        point.pushStack(new VarString(string))
+                        stackInfo.pushStack(new VarString(string))
                 );
                 default -> List.of();
             };
@@ -172,7 +170,7 @@ public class ClassCompiler {
                 var slot = si;
                 for(var idx = 0; idx < invokeInstruction.typeSymbol().parameterCount(); idx++) {
                     var parameterSymbol = invokeInstruction.typeSymbol().parameterList().get(idx);
-                    instructions.addAll(CompilerPoint.pushParameter(point.popStack(), slot));
+                    instructions.addAll(StackInfo.pushParameter(stackInfo.popStack(), slot));
 
                     if(parameterSymbol.descriptorString().equals("D") || parameterSymbol.descriptorString().equals("L")) {
                         slot += 2;
@@ -181,9 +179,9 @@ public class ClassCompiler {
                     }
                 }
                 if(invokeInstruction.opcode() != Opcode.INVOKESTATIC) {
-                    instructions.addAll(CompilerPoint.pushParameter(point.popStack(), 0));
+                    instructions.addAll(StackInfo.pushParameter(stackInfo.popStack(), 0));
                 }
-                instructions.add(CompilerPoint.recurseDeeper());
+                instructions.add(StackInfo.recurseDeeper());
 
                 if(this.actionRegistry.actionSuppliers.containsKey(functionName)) {
                     instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).apply(point));
@@ -193,29 +191,29 @@ public class ClassCompiler {
                             new Args(List.of())
                     ));
                 }
-                instructions.add(CompilerPoint.recurseHigher());
+                instructions.add(StackInfo.recurseHigher());
 
 
                 if(!invokeInstruction.typeSymbol().returnType().descriptorString().equals("V")) {
-                    instructions.addAll(point.pushReturnValue());
+                    instructions.addAll(stackInfo.pushReturnValue());
                 }
                 yield instructions;
             }
             case LoadInstruction loadInstruction -> List.of(
-                    point.pushStack(CompilerPoint.getLocal(loadInstruction.slot()))
+                    stackInfo.pushStack(StackInfo.getLocal(loadInstruction.slot()))
             );
             case ReturnInstruction _ -> List.of(
                     new SetVarAction(
                             "=",
                             new Args(List.of(
                                     new Args.Slot(new VarVariable("rt.%var(r_depth)", VarVariable.Scope.LOCAL), 0),
-                                    new Args.Slot(point.popStack(), 1)
+                                    new Args.Slot(stackInfo.popStack(), 1)
                             ))
                     ),
                     new ControlAction("Return", new Args(List.of()))
             );
             case StoreInstruction storeInstruction -> List.of(
-                    CompilerPoint.setLocal(storeInstruction.slot(), point.popStack())
+                    StackInfo.setLocal(storeInstruction.slot(), stackInfo.popStack())
             );
             case OperatorInstruction operatorInstruction -> {
                 Function<String, List<TemplateBlock>> binaryOp = action -> List.of(
@@ -223,11 +221,11 @@ public class ClassCompiler {
                                 action,
                                 new Args(List.of(
                                         new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(point.popStack(), 1),
-                                        new Args.Slot(point.popStack(), 2)
+                                        new Args.Slot(stackInfo.popStack(), 1),
+                                        new Args.Slot(stackInfo.popStack(), 2)
                                 ))
                         ),
-                        point.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE))
+                        stackInfo.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE))
                 );
 
                 yield switch (operatorInstruction.opcode()) {
@@ -245,33 +243,32 @@ public class ClassCompiler {
                                 "=",
                                 new Args(List.of(
                                         new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(point.popStack(), 1)
+                                        new Args.Slot(stackInfo.popStack(), 1)
                                 ))
                         ),
-                        point.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE)),
-                        point.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE))
+                        stackInfo.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE)),
+                        stackInfo.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE))
                 );
                 default -> throw new RuntimeException("idk " + stackInstruction);
             };
             case NewPrimitiveArrayInstruction newPrimitiveArrayInstruction -> {
-                var count = point.popStack();
-
-                var blocks = new ArrayList<>(CompilerPoint.allocateMemory("array_ptr_tmp"));
-                blocks.add(point.pushStack(new VarString("%var(array_ptr_tmp)")));
+                var count = stackInfo.popStack();
+                var blocks = new ArrayList<>(StackInfo.allocateMemory("array_ptr_tmp"));
+                blocks.add(stackInfo.pushStack(new VarString("%var(array_ptr_tmp)")));
                 yield blocks;
             }
             case ArrayLoadInstruction arrayLoadInstruction -> {
-                var index = point.popStack();
-                var arrayRef = point.popStack();
+                var index = stackInfo.popStack();
+                var arrayRef = stackInfo.popStack();
 
                 yield List.of(
-                        point.pushStack(new VarVariable("memory/%var(" + arrayRef.name() + ")[%var(" + index.name() + ")]", VarVariable.Scope.GAME))
+                        stackInfo.pushStack(new VarVariable("memory/%var(" + arrayRef.name() + ")[%var(" + index.name() + ")]", VarVariable.Scope.GAME))
                 );
             }
             case ArrayStoreInstruction arrayStoreInstruction -> {
-                var value = point.popStack();
-                var index = point.popStack();
-                var arrayRef = point.popStack();
+                var value = stackInfo.popStack();
+                var index = stackInfo.popStack();
+                var arrayRef = stackInfo.popStack();
 
                 yield List.of(
                         new SetVarAction(
@@ -287,159 +284,4 @@ public class ClassCompiler {
         };
     }
 
-    public static class CompilerPoint {
-        AtomicInteger stackPointer = new AtomicInteger(0);
-        MethodModel associatedMethod;
-        CodeModel associatedCode;
-        ClassModel associatedClass;
-
-        public static CompilerPoint create(MethodModel methodModel, CodeModel codeModel, ClassModel classModel) {
-            var cc = new CompilerPoint();
-            cc.associatedMethod = methodModel;
-            cc.associatedCode = codeModel;
-            cc.associatedClass = classModel;
-            return cc;
-        }
-
-        public MethodModel method() {
-            return this.associatedMethod;
-        }
-
-        public CodeModel code() {
-            return this.associatedCode;
-        }
-
-        public ClassModel classModel() {
-            return this.associatedClass;
-        }
-
-        public AtomicInteger stackPointer() {
-            return this.stackPointer;
-        }
-
-        public SetVarAction pushStack(VarItem varItem) {
-            return new SetVarAction(
-                    "=",
-                    new Args(List.of(
-                            new Args.Slot(
-                                    new VarVariable("stack." + this.stackPointer().incrementAndGet(), VarVariable.Scope.LINE),
-                                    0
-                            ),
-                            new Args.Slot(varItem, 1)
-                    ))
-            );
-        }
-
-        public static SetVarAction recurseDeeper() {
-            return new SetVarAction(
-                    "+=",
-                    new Args(List.of(
-                            new Args.Slot(
-                                    new VarVariable("r_depth", VarVariable.Scope.LOCAL),
-                                    0
-                            ),
-                            new Args.Slot(new VarNumber("1"), 1)
-                    ))
-            );
-        }
-
-        public static SetVarAction recurseHigher() {
-            return new SetVarAction(
-                    "-=",
-                    new Args(List.of(
-                            new Args.Slot(
-                                    new VarVariable("r_depth", VarVariable.Scope.LOCAL),
-                                    0
-                            ),
-                            new Args.Slot(new VarNumber("1"), 1)
-                    ))
-            );
-        }
-
-        public static List<TemplateBlock> pushParameter(VarItem varItem, int index) {
-            return List.of(
-                    new SetVarAction(
-                            "+",
-                            new Args(List.of(
-                                    new Args.Slot(new VarVariable("r1_depth", VarVariable.Scope.LINE), 0),
-                                    new Args.Slot(new VarVariable("r_depth", VarVariable.Scope.LOCAL), 1),
-                                    new Args.Slot(new VarNumber("1"), 2)
-                            ))
-                    ),
-                    new SetVarAction(
-                            "=",
-                            new Args(List.of(
-                                    new Args.Slot(
-                                            new VarVariable("local[%var(r1_depth)][" + index + "]", VarVariable.Scope.LOCAL),
-                                            0
-                                    ),
-                                    new Args.Slot(varItem, 1)
-                            ))
-                    )
-            );
-        }
-
-        public List<TemplateBlock> pushReturnValue() {
-            return List.of(
-                    new SetVarAction(
-                            "+",
-                            new Args(List.of(
-                                    new Args.Slot(new VarVariable("r1_depth", VarVariable.Scope.LINE), 0),
-                                    new Args.Slot(new VarVariable("r_depth", VarVariable.Scope.LOCAL), 1),
-                                    new Args.Slot(new VarNumber("1"), 2)
-                            ))
-                    ),
-                    this.pushStack(new VarVariable("rt.%var(r1_depth)", VarVariable.Scope.LOCAL))
-            );
-        }
-
-        public VarVariable popStack() {
-            return new VarVariable("stack." + this.stackPointer().getAndDecrement(), VarVariable.Scope.LINE);
-        }
-
-        public static SetVarAction setLocal(int local, VarItem varItem) {
-            return new SetVarAction(
-                    "=",
-                    new Args(List.of(
-                            new Args.Slot(
-                                    new VarVariable("local[%var(r_depth)][" + local + "]", VarVariable.Scope.LOCAL),
-                                    0
-                            ),
-                            new Args.Slot(varItem, 1)
-                    ))
-            );
-        }
-
-        public static VarVariable getLocal(int local) {
-            return new VarVariable("local[%var(r_depth)][" + local + "]", VarVariable.Scope.LOCAL);
-        }
-
-        public static List<TemplateBlock> allocateMemory(String placeholderVariable) {
-            return List.of(
-                    new SetVarAction(
-                            "+=",
-                            new Args(List.of(
-                                    new Args.Slot(new VarVariable("memory/idx", VarVariable.Scope.GAME), 0)
-                            ))
-                    ),
-                    new SetVarAction(
-                            "=",
-                            new Args(List.of(
-                                    new Args.Slot(new VarVariable(placeholderVariable, VarVariable.Scope.LINE), 0),
-                                    new Args.Slot(new VarString("ref@%var(memory/idx)"), 1)
-                            ))
-                    )
-            );
-        }
-
-        public static TemplateBlock setReturnValue(VarItem varItem) {
-            return new SetVarAction(
-                    "=",
-                    new Args(List.of(
-                            new Args.Slot(new VarVariable("rt.%var(r_depth)", VarVariable.Scope.LOCAL), 0),
-                            new Args.Slot(varItem, 1)
-                    ))
-            );
-        }
-    }
 }

@@ -26,7 +26,7 @@ public class GenerateEvents {
         ));
         int idx = 0;
         for(var target : targets) {
-            blocks.addAll(ClassCompiler.CompilerPoint.allocateMemory("tmp_target"));
+            blocks.addAll(StackInfo.allocateMemory("tmp_target"));
             blocks.add(new SetVarAction(
                     "=",
                     new Args(List.of(
@@ -34,7 +34,7 @@ public class GenerateEvents {
                             new Args.Slot(new VarString("%" + target.name().toLowerCase(Locale.ROOT)), 2)
                     ))
             ));
-            blocks.add(ClassCompiler.CompilerPoint.setLocal(idx, new VarVariable("tmp_target", VarVariable.Scope.LINE)));
+                blocks.add(StackInfo.setLocal(idx, new VarVariable("tmp_target", VarVariable.Scope.LINE)));
             idx += 1;
         }
         blocks.add(new CallFunctionAction(

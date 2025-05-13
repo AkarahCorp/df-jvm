@@ -1,6 +1,5 @@
 package dev.akarah.dfjvm.compiler.compilation;
 
-import dev.akarah.codetemplate.blocks.FunctionAction;
 import dev.akarah.codetemplate.blocks.PlayerAction;
 import dev.akarah.codetemplate.blocks.SelectObjectAction;
 import dev.akarah.codetemplate.blocks.SetVarAction;
@@ -18,7 +17,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public class ActionRegistry {
-    Map<String, Function<ClassCompiler.CompilerPoint, List<TemplateBlock>>> actionSuppliers = new HashMap<>();
+    Map<String, Function<CompilerPoint, List<TemplateBlock>>> actionSuppliers = new HashMap<>();
 
     public static ActionRegistry create() {
         return new ActionRegistry();
@@ -30,16 +29,16 @@ public class ActionRegistry {
                     "String",
                     new Args(List.of(
                             new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                            new Args.Slot(ClassCompiler.CompilerPoint.getLocal(0), 1)
+                            new Args.Slot(StackInfo.getLocal(0), 1)
                     ))
             ),
-            ClassCompiler.CompilerPoint.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
+            StackInfo.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
         ));
     }
 
     public ActionRegistry withPlayerActions() {
         return this.with("df/Player#sendMessage(Ljava/lang/String;)V", _ -> ListUtils.join(
-                TypeUtils.stringToComponent(ClassCompiler.CompilerPoint.getLocal(1), "comp"),
+                TypeUtils.stringToComponent(StackInfo.getLocal(1), "comp"),
                 ActionRegistry.runForPlayer(
                         new PlayerAction(
                                 "SendMessage",
@@ -50,7 +49,7 @@ public class ActionRegistry {
                         )
                 )
         )).with("df/Player#sendActionBar(Ljava/lang/String;)V", _ -> ListUtils.join(
-                TypeUtils.stringToComponent(ClassCompiler.CompilerPoint.getLocal(1), "comp"),
+                TypeUtils.stringToComponent(StackInfo.getLocal(1), "comp"),
                 ActionRegistry.runForPlayer(
                         new PlayerAction(
                                 "ActionBar",
@@ -64,7 +63,7 @@ public class ActionRegistry {
                 new PlayerAction(
                         "Heal",
                         new Args(List.of(
-                                new Args.Slot(ClassCompiler.CompilerPoint.getLocal(1), 0)
+                                new Args.Slot(StackInfo.getLocal(1), 0)
                         )),
                         Optional.of(SelectionTarget.SELECTION)
                 )
@@ -72,7 +71,7 @@ public class ActionRegistry {
                 new PlayerAction(
                         "Damage",
                         new Args(List.of(
-                                new Args.Slot(ClassCompiler.CompilerPoint.getLocal(1), 0)
+                                new Args.Slot(StackInfo.getLocal(1), 0)
                         )),
                         Optional.of(SelectionTarget.SELECTION)
                 )
@@ -80,12 +79,12 @@ public class ActionRegistry {
                 new PlayerAction(
                         "SetHealth",
                         new Args(List.of(
-                                new Args.Slot(ClassCompiler.CompilerPoint.getLocal(1), 0)
+                                new Args.Slot(StackInfo.getLocal(1), 0)
                         )),
                         Optional.of(SelectionTarget.SELECTION)
                 )
         )).with("df/Player#teleport(Ldf/Location;)V", _ -> ListUtils.join(
-                TypeUtils.dictToLoc(ClassCompiler.CompilerPoint.getLocal(1), "loc"),
+                TypeUtils.dictToLoc(StackInfo.getLocal(1), "loc"),
                 ActionRegistry.runForPlayer(
                         new PlayerAction(
                                 "Teleport",
@@ -98,7 +97,7 @@ public class ActionRegistry {
         ));
     }
 
-    public ActionRegistry with(String descriptor, Function<ClassCompiler.CompilerPoint, List<TemplateBlock>> function) {
+    public ActionRegistry with(String descriptor, Function<CompilerPoint, List<TemplateBlock>> function) {
         this.actionSuppliers.put(descriptor, function);
         return this;
     }
@@ -108,7 +107,7 @@ public class ActionRegistry {
                 new SelectObjectAction(
                         "PlayerName",
                         new Args(List.of(
-                                new Args.Slot(new VarString("%var(memory/%var(" + ClassCompiler.CompilerPoint.getLocal(0).name() + ").player)"), 0)
+                                new Args.Slot(new VarString("%var(memory/%var(" + StackInfo.getLocal(0).name() + ").player)"), 0)
                         ))
                 ),
                 base,
