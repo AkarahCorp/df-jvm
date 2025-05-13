@@ -99,6 +99,58 @@ public class ClassCompiler {
                 blocks.add(stackInfo.pushStack(new VarString("%var(tmp)")));
                 yield blocks;
             }
+            case BranchInstruction branchInstruction -> {
+                var blocks = new ArrayList<TemplateBlock>();
+
+                VarItem value1 = null;
+                VarItem value2 = null;
+
+                switch (branchInstruction.opcode()) {
+                    case IF_ICMPEQ, IF_ICMPNE, IF_ICMPGT, IF_ICMPLT, IF_ICMPGE, IF_ICMPLE, IF_ACMPEQ, IF_ACMPNE -> {
+                        value2 = stackInfo.popStack();
+                        value1 = stackInfo.popStack();
+                    }
+                    case IFEQ, IFNE, IFLE, IFLT, IFGE, IFGT -> {
+                        value2 = new VarNumber("0");
+                        value1 = stackInfo.popStack();
+                    }
+                    case IFNULL, IFNONNULL -> {
+                        value1 = stackInfo.popStack();
+                        value2 = new VarString("ref@null");
+                    }
+                }
+
+                var blockAdded = true;
+                switch (branchInstruction.opcode()) {
+                    case IF_ICMPEQ, IF_ACMPEQ, IFNULL, IFEQ -> blocks.add(new IfVarAction("=",
+                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case IF_ICMPNE, IF_ACMPNE, IFNONNULL, IFNE -> blocks.add(new IfVarAction("!=",
+                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case IF_ICMPLT, IFLT -> blocks.add(new IfVarAction("<",
+                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case IF_ICMPGT, IFGT -> blocks.add(new IfVarAction(">",
+                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case IF_ICMPLE, IFLE -> blocks.add(new IfVarAction("<=",
+                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case IF_ICMPGE, IFGE -> blocks.add(new IfVarAction(">=",
+                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case GOTO, GOTO_W -> blockAdded = false;
+                    default -> throw new RuntimeException("unknown opcode " + branchInstruction.opcode());
+                }
+
+                if(blockAdded)
+                    blocks.add(new Bracket(Bracket.Direction.OPEN, Bracket.Type.NORMAL));
+
+                var targetLabel = branchInstruction.target();
+                var name = point.functionName(point.labelToBci(targetLabel));
+                blocks.add(new CallFunctionAction(name, new Args(List.of())));
+                blocks.add(new ControlAction("Return", new Args(List.of())));
+
+                if(blockAdded)
+                    blocks.add(new Bracket(Bracket.Direction.CLOSE, Bracket.Type.NORMAL));
+
+                yield blocks;
+            }
             case FieldInstruction fieldInstruction -> switch (fieldInstruction.opcode()) {
                 case GETFIELD -> {
                     var objectRef = stackInfo.popStack();
@@ -126,24 +178,29 @@ public class ClassCompiler {
                 }
                 default -> throw new RuntimeException("uh not supported " + fieldInstruction.opcode() + " byebye");
             };
-            case ConstantInstruction constantInstruction -> switch (constantInstruction.constantValue()) {
-                case Double aDouble -> List.of(
-                        stackInfo.pushStack(new VarNumber(aDouble.toString()))
-                );
-                case Float aFloat -> List.of(
-                        stackInfo.pushStack(new VarNumber(aFloat.toString()))
-                );
-                case Integer integer -> List.of(
-                        stackInfo.pushStack(new VarNumber(integer.toString()))
-                );
-                case Long aLong -> List.of(
-                        stackInfo.pushStack(new VarNumber(aLong.toString()))
-                );
-                case String string -> List.of(
-                        stackInfo.pushStack(new VarString(string))
-                );
-                default -> List.of();
-            };
+            case ConstantInstruction constantInstruction -> {
+                if(constantInstruction.opcode() == Opcode.ACONST_NULL) {
+                    yield List.of(stackInfo.pushStack(new VarString("ref@null")));
+                }
+                yield switch (constantInstruction.constantValue()) {
+                    case Double aDouble -> List.of(
+                            stackInfo.pushStack(new VarNumber(aDouble.toString()))
+                    );
+                    case Float aFloat -> List.of(
+                            stackInfo.pushStack(new VarNumber(aFloat.toString()))
+                    );
+                    case Integer integer -> List.of(
+                            stackInfo.pushStack(new VarNumber(integer.toString()))
+                    );
+                    case Long aLong -> List.of(
+                            stackInfo.pushStack(new VarNumber(aLong.toString()))
+                    );
+                    case String string -> List.of(
+                            stackInfo.pushStack(new VarString(string))
+                    );
+                    default -> throw new RuntimeException("unsupported constant " + constantInstruction.constantValue());
+                };
+            }
             case InvokeInstruction invokeInstruction -> {
                 var functionName = invokeInstruction.method().owner().asInternalName()
                         + "#" + invokeInstruction.method().name()

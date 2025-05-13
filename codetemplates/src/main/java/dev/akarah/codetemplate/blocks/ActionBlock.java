@@ -21,6 +21,7 @@ public interface ActionBlock extends TemplateBlock {
                 case "select_obj" -> SelectObjectAction.CODEC;
                 case "set_var" -> SetVarAction.CODEC;
                 case "repeat" -> RepeatAction.CODEC;
+                case "if_var" -> IfVarAction.CODEC;
                 default -> throw new RuntimeException("could not find" + id);
             }
     );
