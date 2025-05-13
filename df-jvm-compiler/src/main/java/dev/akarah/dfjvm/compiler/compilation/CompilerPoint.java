@@ -1,9 +1,7 @@
 package dev.akarah.dfjvm.compiler.compilation;
 
-import java.lang.classfile.ClassModel;
-import java.lang.classfile.CodeModel;
-import java.lang.classfile.MethodModel;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.lang.classfile.*;
+import java.lang.classfile.attribute.CodeAttribute;
 
 public class CompilerPoint {
     MethodModel associatedMethod;
@@ -28,5 +26,22 @@ public class CompilerPoint {
 
     public ClassModel classModel() {
         return this.associatedClass;
+    }
+
+    public String functionName() {
+        return this.associatedClass.thisClass().asInternalName()
+                + "#" + this.associatedMethod.methodName()
+                + this.associatedMethod.methodTypeSymbol().descriptorString();
+    }
+
+    public int labelToBci(Label label) {
+        if(this.code() instanceof CodeAttribute codeAttribute) {
+            return codeAttribute.labelToBci(label);
+        }
+        throw new UnsupportedOperationException("Label is not associated with this compiler point");
+    }
+
+    public String functionName(int label) {
+        return this.functionName() + "@" + label;
     }
 }

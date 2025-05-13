@@ -38,8 +38,6 @@ public class ClassCompiler {
     public CodeTemplateData templateForMethodModel(MethodModel methodModel, ClassModel classModel) {
         var codeBlocks = new ArrayList<TemplateBlock>();
 
-        var func = new FunctionAction(classModel.thisClass().asInternalName() + "#" + methodModel.methodName() + methodModel.methodTypeSymbol().descriptorString(), new Args(List.of()));
-        codeBlocks.add(func);
 
         methodModel.code().ifPresent(codeModel -> codeBlocks.addAll(compileCodeModel(codeModel, methodModel, classModel)));
 
@@ -50,6 +48,7 @@ public class ClassCompiler {
         var blocks = new ArrayList<TemplateBlock>();
         var point = CompilerPoint.create(methodModel, codeModel, classModel);
         var si = new StackInfo();
+        blocks.add(new FunctionAction(point.functionName(), new Args(List.of())));
         codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point, si)));
         return blocks;
     }
@@ -59,20 +58,14 @@ public class ClassCompiler {
             case Instruction instruction -> compileInstruction(instruction, point, stackInfo, true);
             case PseudoInstruction pseudoInstruction -> switch (pseudoInstruction) {
                 case LabelTarget labelTarget -> {
-                    var name = point.classModel().thisClass().asInternalName() + "#" + point.method().methodName() + point.method().methodTypeSymbol().descriptorString();
-                    var bci = 0;
-                    if(point.code() instanceof CodeAttribute codeAttribute) {
-                        bci = codeAttribute.labelToBci(labelTarget.label());
-                    } else {
-                        bci = -1;
-                    }
+                    var bci = point.labelToBci(labelTarget.label());
                     yield List.of(
                         new CallFunctionAction(
-                                name + "@" + bci,
+                                point.functionName(bci),
                                 new Args(List.of())
                         ),
                         new FunctionAction(
-                                name + "@" + bci,
+                                point.functionName(bci),
                                 new Args(List.of())
                         )
                     );

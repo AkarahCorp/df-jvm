@@ -34,7 +34,7 @@ public class GenerateEvents {
                             new Args.Slot(new VarString("%" + target.name().toLowerCase(Locale.ROOT)), 2)
                     ))
             ));
-                blocks.add(StackInfo.setLocal(idx, new VarVariable("tmp_target", VarVariable.Scope.LINE)));
+            blocks.add(StackInfo.setLocal(idx, new VarVariable("tmp_target", VarVariable.Scope.LINE)));
             idx += 1;
         }
         blocks.add(new CallFunctionAction(

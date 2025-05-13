@@ -2,12 +2,20 @@ package df;
 
 public class Events {
     public static void playerJoin(Player p) {
-        int[] arr = new int[]{10, 15, 19};
-        p.damage(arr[2]);
-        p.sendMessage("h");
+//        int i = i();
+//        int j = j();
+//        if(i == j) {
+//            p.sendMessage("true");
+//        } else {
+//            p.sendMessage("false");
+//        }
     }
 
-    public static void playerLeave(Player p) {
-        p.sendMessage("<red>Goodbye!");
+    public static int i() {
+        return 10;
+    }
+
+    public static int j() {
+        return 10;
     }
 }
