@@ -106,33 +106,20 @@ public class ClassCompiler {
             case NewObjectInstruction _ -> {
                 var blocks = new ArrayList<>(CompilerPoint.allocateMemory("tmp"));
                 blocks.add(point.pushStack(new VarString("%var(tmp)")));
-                blocks.add(new SetVarAction(
-                    "CreateDict",
-                    new Args(List.of(
-                            new Args.Slot(new VarVariable("memory/%var(tmp)", VarVariable.Scope.GAME), 0)
-                    ))
-                ));
                 yield blocks;
             }
             case FieldInstruction fieldInstruction -> switch (fieldInstruction.opcode()) {
-                case GETFIELD -> List.of(
-                        new SetVarAction(
-                                "=",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("addr", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(point.popStack(), 1)
-                                ))
-                        ),
-                        new SetVarAction(
-                                "GetDictValue",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("stack_var", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(new VarVariable("memory/%var(addr)", VarVariable.Scope.GAME), 1),
-                                        new Args.Slot(new VarString(fieldInstruction.field().name().stringValue()), 2)
-                                ))
-                        ),
-                        point.pushStack(new VarVariable("stack_var", VarVariable.Scope.LINE))
-                );
+                case GETFIELD -> {
+                    var objectRef = point.popStack();
+                    yield List.of(
+                            point.pushStack(
+                                    new VarVariable(
+                                            "memory/%var(" + objectRef.name() + ")." + fieldInstruction.field().name().stringValue(),
+                                            VarVariable.Scope.GAME
+                                    )
+                            )
+                    );
+                }
                 case PUTFIELD -> {
                     var newValue = point.popStack();
                     var objectRef = point.popStack();
@@ -140,15 +127,7 @@ public class ClassCompiler {
                             new SetVarAction(
                                     "=",
                                     new Args(List.of(
-                                            new Args.Slot(new VarVariable("addr", VarVariable.Scope.LINE), 0),
-                                            new Args.Slot(objectRef, 1)
-                                    ))
-                            ),
-                            new SetVarAction(
-                                    "SetDictValue",
-                                    new Args(List.of(
-                                            new Args.Slot(new VarVariable("memory/%var(addr)", VarVariable.Scope.GAME), 0),
-                                            new Args.Slot(new VarString(fieldInstruction.field().name().stringValue()), 1),
+                                            new Args.Slot(new VarVariable("memory/%var(" + objectRef.name() + ")." + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME), 0),
                                             new Args.Slot(newValue, 2)
                                     ))
                             )
@@ -470,7 +449,7 @@ public class ClassCompiler {
             );
         }
 
-        public VarItem popStack() {
+        public VarVariable popStack() {
             return new VarVariable("stack[%var(r_depth)][" + this.stackPointer().getAndDecrement() + "]", VarVariable.Scope.LOCAL);
         }
 
@@ -487,7 +466,7 @@ public class ClassCompiler {
             );
         }
 
-        public static VarItem getLocal(int local) {
+        public static VarVariable getLocal(int local) {
             return new VarVariable("local[%var(r_depth)][" + local + "]", VarVariable.Scope.LOCAL);
         }
 

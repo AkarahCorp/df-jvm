@@ -105,17 +105,10 @@ public class ActionRegistry {
 
     public static List<TemplateBlock> runForPlayer(PlayerAction base) {
         return List.of(
-                new SetVarAction(
-                        "=",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                new Args.Slot(ClassCompiler.CompilerPoint.getLocal(0), 1)
-                        ))
-                ),
                 new SelectObjectAction(
                         "PlayerName",
                         new Args(List.of(
-                                new Args.Slot(new VarString("%entry(memory/%var(tmp),player)"), 0)
+                                new Args.Slot(new VarString("%var(memory/%var(" + ClassCompiler.CompilerPoint.getLocal(0).name() + ").player)"), 0)
                         ))
                 ),
                 base,

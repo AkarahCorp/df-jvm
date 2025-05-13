@@ -28,10 +28,9 @@ public class GenerateEvents {
         for(var target : targets) {
             blocks.addAll(ClassCompiler.CompilerPoint.allocateMemory("tmp_target"));
             blocks.add(new SetVarAction(
-                    "SetDictValue",
+                    "=",
                     new Args(List.of(
-                            new Args.Slot(new VarVariable("memory/%var(tmp_target)", VarVariable.Scope.GAME), 0),
-                            new Args.Slot(new VarString("player"), 1),
+                            new Args.Slot(new VarVariable("memory/%var(tmp_target).player", VarVariable.Scope.GAME), 0),
                             new Args.Slot(new VarString("%" + target.name().toLowerCase(Locale.ROOT)), 2)
                     ))
             ));
