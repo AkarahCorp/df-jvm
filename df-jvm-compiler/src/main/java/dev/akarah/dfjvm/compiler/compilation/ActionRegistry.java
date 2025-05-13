@@ -6,6 +6,7 @@ import dev.akarah.codetemplate.blocks.SetVarAction;
 import dev.akarah.codetemplate.blocks.types.Args;
 import dev.akarah.codetemplate.blocks.types.SelectionTarget;
 import dev.akarah.codetemplate.template.TemplateBlock;
+import dev.akarah.codetemplate.varitem.VarItem;
 import dev.akarah.codetemplate.varitem.VarString;
 import dev.akarah.codetemplate.varitem.VarVariable;
 import dev.akarah.dfjvm.compiler.ListUtils;
@@ -17,19 +18,19 @@ import java.util.Optional;
 import java.util.function.Function;
 
 public class ActionRegistry {
-    Map<String, Function<CompilerPoint, List<TemplateBlock>>> actionSuppliers = new HashMap<>();
+    Map<String, Function<List<VarItem>, List<TemplateBlock>>> actionSuppliers = new HashMap<>();
 
     public static ActionRegistry create() {
         return new ActionRegistry();
     }
 
     public ActionRegistry withJavaMethods() {
-        return this.with("java/lang/Object#toString()Ljava/lang/String;", point -> List.of(
+        return this.with("java/lang/Object#toString()Ljava/lang/String;", locals -> List.of(
             new SetVarAction(
                     "String",
                     new Args(List.of(
                             new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                            new Args.Slot(StackInfo.getLocal(0), 1)
+                            new Args.Slot(locals.getFirst(), 1)
                     ))
             ),
             StackInfo.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
@@ -37,8 +38,8 @@ public class ActionRegistry {
     }
 
     public ActionRegistry withPlayerActions() {
-        return this.with("df/Player#sendMessage(Ljava/lang/String;)V", _ -> ListUtils.join(
-                TypeUtils.stringToComponent(StackInfo.getLocal(1), "comp"),
+        return this.with("df/Player#sendMessage(Ljava/lang/String;)V", locals -> ListUtils.join(
+                TypeUtils.stringToComponent(locals.get(1), "comp"),
                 ActionRegistry.runForPlayer(
                         new PlayerAction(
                                 "SendMessage",
@@ -46,10 +47,11 @@ public class ActionRegistry {
                                         new Args.Slot(new VarVariable("comp", VarVariable.Scope.LINE), 0)
                                 )),
                                 Optional.of(SelectionTarget.SELECTION)
-                        )
+                        ),
+                        locals
                 )
-        )).with("df/Player#sendActionBar(Ljava/lang/String;)V", _ -> ListUtils.join(
-                TypeUtils.stringToComponent(StackInfo.getLocal(1), "comp"),
+        )).with("df/Player#sendActionBar(Ljava/lang/String;)V", locals -> ListUtils.join(
+                TypeUtils.stringToComponent(locals.get(1), "comp"),
                 ActionRegistry.runForPlayer(
                         new PlayerAction(
                                 "ActionBar",
@@ -57,34 +59,38 @@ public class ActionRegistry {
                                         new Args.Slot(new VarVariable("comp", VarVariable.Scope.LINE), 0)
                                 )),
                                 Optional.of(SelectionTarget.SELECTION)
-                        )
+                        ),
+                        locals
                 )
-        )).with("df/Player#heal(I)V", _ -> ActionRegistry.runForPlayer(
+        )).with("df/Player#heal(I)V", locals -> ActionRegistry.runForPlayer(
                 new PlayerAction(
                         "Heal",
                         new Args(List.of(
-                                new Args.Slot(StackInfo.getLocal(1), 0)
+                                new Args.Slot(locals.get(1), 0)
                         )),
                         Optional.of(SelectionTarget.SELECTION)
-                )
-        )).with("df/Player#damage(I)V", _ -> ActionRegistry.runForPlayer(
+                ),
+                locals
+        )).with("df/Player#damage(I)V", locals -> ActionRegistry.runForPlayer(
                 new PlayerAction(
                         "Damage",
                         new Args(List.of(
-                                new Args.Slot(StackInfo.getLocal(1), 0)
+                                new Args.Slot(locals.get(1), 0)
                         )),
                         Optional.of(SelectionTarget.SELECTION)
-                )
-        )).with("df/Player#setHealth(I)V", _ -> ActionRegistry.runForPlayer(
+                ),
+                locals
+        )).with("df/Player#setHealth(I)V", locals -> ActionRegistry.runForPlayer(
                 new PlayerAction(
                         "SetHealth",
                         new Args(List.of(
-                                new Args.Slot(StackInfo.getLocal(1), 0)
+                                new Args.Slot(locals.get(1), 0)
                         )),
                         Optional.of(SelectionTarget.SELECTION)
-                )
-        )).with("df/Player#teleport(Ldf/Location;)V", _ -> ListUtils.join(
-                TypeUtils.dictToLoc(StackInfo.getLocal(1), "loc"),
+                ),
+                locals
+        )).with("df/Player#teleport(Ldf/Location;)V", locals -> ListUtils.join(
+                TypeUtils.dictToLoc(locals.get(1), "loc"),
                 ActionRegistry.runForPlayer(
                         new PlayerAction(
                                 "Teleport",
@@ -92,22 +98,30 @@ public class ActionRegistry {
                                         new Args.Slot(new VarVariable("loc", VarVariable.Scope.LINE), 0)
                                 )),
                                 Optional.of(SelectionTarget.SELECTION)
-                        )
+                        ),
+                        locals
                 )
         ));
     }
 
-    public ActionRegistry with(String descriptor, Function<CompilerPoint, List<TemplateBlock>> function) {
+    public ActionRegistry with(String descriptor, Function<List<VarItem>, List<TemplateBlock>> function) {
         this.actionSuppliers.put(descriptor, function);
         return this;
     }
 
-    public static List<TemplateBlock> runForPlayer(PlayerAction base) {
+    public static List<TemplateBlock> runForPlayer(PlayerAction base, List<VarItem> locals) {
         return List.of(
+                new SetVarAction(
+                        "=",
+                        new Args(List.of(
+                                new Args.Slot(new VarVariable("tmp.player_name", VarVariable.Scope.LINE), 0),
+                                new Args.Slot(locals.getFirst(), 1)
+                        ))
+                ),
                 new SelectObjectAction(
                         "PlayerName",
                         new Args(List.of(
-                                new Args.Slot(new VarString("%var(memory/%var(" + StackInfo.getLocal(0).name() + ").player)"), 0)
+                                new Args.Slot(new VarString("%var(memory/%var(tmp.player_name).player)"), 0)
                         ))
                 ),
                 base,

@@ -14,6 +14,7 @@ public interface VarItem {
                     case "txt" -> VarString.CODEC;
                     case "bl_tag" -> VarBlockTag.CODEC;
                     case "g_val" -> VarGameValue.CODEC;
+                    case "pn_el" -> VarParameter.CODEC;
                     default -> null;
                 };
                 if(subCodec == null) {

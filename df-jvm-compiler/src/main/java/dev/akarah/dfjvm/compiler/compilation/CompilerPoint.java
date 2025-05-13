@@ -1,7 +1,15 @@
 package dev.akarah.dfjvm.compiler.compilation;
 
+import dev.akarah.codetemplate.varitem.VarItem;
+import dev.akarah.codetemplate.varitem.VarParameter;
+import dev.akarah.codetemplate.varitem.VarVariable;
+
 import java.lang.classfile.*;
 import java.lang.classfile.attribute.CodeAttribute;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class CompilerPoint {
     MethodModel associatedMethod;
@@ -43,5 +51,26 @@ public class CompilerPoint {
 
     public String functionName(int label) {
         return this.functionName() + "@" + label;
+    }
+
+    public Stream<VarVariable> getAllLocals() {
+        if(this.code() instanceof CodeAttribute codeAttribute) {
+            if(codeAttribute.maxLocals() > 27) {
+                throw new UnsupportedOperationException("please make function" + this.method().methodName() + " have less variables tyty");
+            }
+            return IntStream.range(0, codeAttribute.maxLocals())
+                    .mapToObj(x -> new VarVariable("local." + x, VarVariable.Scope.LINE));
+        }
+        throw new UnsupportedOperationException("not instance of CodeAttribute");
+    }
+
+    public Stream<VarParameter> getCopiedLocalParameters() {
+        return this.getAllLocals()
+                .map(x -> new VarParameter(x.name(), "any", false, false));
+    }
+
+    public Stream<VarParameter> getReferencedLocalParameters() {
+        return this.getAllLocals()
+                .map(x -> new VarParameter(x.name(), "var", false, false));
     }
 }

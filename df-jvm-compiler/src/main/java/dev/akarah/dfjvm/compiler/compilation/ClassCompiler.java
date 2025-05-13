@@ -38,7 +38,6 @@ public class ClassCompiler {
     public CodeTemplateData templateForMethodModel(MethodModel methodModel, ClassModel classModel) {
         var codeBlocks = new ArrayList<TemplateBlock>();
 
-
         methodModel.code().ifPresent(codeModel -> codeBlocks.addAll(compileCodeModel(codeModel, methodModel, classModel)));
 
         return new CodeTemplateData("x", "x", "1", new CodeTemplate(codeBlocks));
@@ -48,7 +47,7 @@ public class ClassCompiler {
         var blocks = new ArrayList<TemplateBlock>();
         var point = CompilerPoint.create(methodModel, codeModel, classModel);
         var si = new StackInfo();
-        blocks.add(new FunctionAction(point.functionName(), new Args(List.of())));
+        blocks.add(StackInfo.beginFunction(point.functionName(), point.getCopiedLocalParameters().toList()));
         codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point, si)));
         return blocks;
     }
@@ -60,14 +59,14 @@ public class ClassCompiler {
                 case LabelTarget labelTarget -> {
                     var bci = point.labelToBci(labelTarget.label());
                     yield List.of(
-                        new CallFunctionAction(
-                                point.functionName(bci),
-                                new Args(List.of())
-                        ),
-                        new FunctionAction(
-                                point.functionName(bci),
-                                new Args(List.of())
-                        )
+                            StackInfo.callFunction(
+                                    point.functionName(bci),
+                                    point.getAllLocals().map(x -> (VarItem) x).toList()
+                            ),
+                            StackInfo.beginFunction(
+                                    point.functionName(bci),
+                                    point.getReferencedLocalParameters().toList()
+                            )
                     );
                 }
                 default -> List.of();
@@ -143,7 +142,7 @@ public class ClassCompiler {
 
                 var targetLabel = branchInstruction.target();
                 var name = point.functionName(point.labelToBci(targetLabel));
-                blocks.add(new CallFunctionAction(name, new Args(List.of())));
+                blocks.add(StackInfo.callFunction(name, point.getAllLocals().map(x -> (VarItem) x).toList()));
                 blocks.add(new ControlAction("Return", new Args(List.of())));
 
                 if(blockAdded)
@@ -179,9 +178,6 @@ public class ClassCompiler {
                 default -> throw new RuntimeException("uh not supported " + fieldInstruction.opcode() + " byebye");
             };
             case ConstantInstruction constantInstruction -> {
-                if(constantInstruction.opcode() == Opcode.ACONST_NULL) {
-                    yield List.of(stackInfo.pushStack(new VarString("ref@null")));
-                }
                 yield switch (constantInstruction.constantValue()) {
                     case Double aDouble -> List.of(
                             stackInfo.pushStack(new VarNumber(aDouble.toString()))
@@ -198,7 +194,12 @@ public class ClassCompiler {
                     case String string -> List.of(
                             stackInfo.pushStack(new VarString(string))
                     );
-                    default -> throw new RuntimeException("unsupported constant " + constantInstruction.constantValue());
+                    default -> {
+                        if(constantInstruction.opcode() == Opcode.ACONST_NULL) {
+                            yield List.of(stackInfo.pushStack(new VarString("ref@null")));
+                        }
+                        throw new RuntimeException("unsupported constant " + constantInstruction.constantValue());
+                    }
                 };
             }
             case InvokeInstruction invokeInstruction -> {
@@ -217,31 +218,23 @@ public class ClassCompiler {
                     si = 1;
                 }
 
-                var slot = si;
+                var parameters = new ArrayList<VarItem>();
                 for(var idx = 0; idx < invokeInstruction.typeSymbol().parameterCount(); idx++) {
+                    parameters.add(stackInfo.popStack());
                     var parameterSymbol = invokeInstruction.typeSymbol().parameterList().get(idx);
-                    instructions.addAll(StackInfo.pushParameter(stackInfo.popStack(), slot));
-
                     if(parameterSymbol.descriptorString().equals("D") || parameterSymbol.descriptorString().equals("L")) {
-                        slot += 2;
-                    } else {
-                        slot += 1;
+                        parameters.add(new VarString("unused"));
                     }
                 }
                 if(invokeInstruction.opcode() != Opcode.INVOKESTATIC) {
-                    instructions.addAll(StackInfo.pushParameter(stackInfo.popStack(), 0));
+                    parameters.addFirst(stackInfo.popStack());
                 }
-                instructions.add(StackInfo.recurseDeeper());
 
                 if(this.actionRegistry.actionSuppliers.containsKey(functionName)) {
-                    instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).apply(point));
+                    instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).apply(parameters));
                 } else {
-                    instructions.add(new CallFunctionAction(
-                            functionName,
-                            new Args(List.of())
-                    ));
+                    instructions.add(StackInfo.callFunction(functionName, parameters));
                 }
-                instructions.add(StackInfo.recurseHigher());
 
 
                 if(!invokeInstruction.typeSymbol().returnType().descriptorString().equals("V")) {
@@ -256,7 +249,7 @@ public class ClassCompiler {
                     new SetVarAction(
                             "=",
                             new Args(List.of(
-                                    new Args.Slot(new VarVariable("rt.%var(r_depth)", VarVariable.Scope.LOCAL), 0),
+                                    new Args.Slot(new VarVariable("returned", VarVariable.Scope.LINE), 0),
                                     new Args.Slot(stackInfo.popStack(), 1)
                             ))
                     ),

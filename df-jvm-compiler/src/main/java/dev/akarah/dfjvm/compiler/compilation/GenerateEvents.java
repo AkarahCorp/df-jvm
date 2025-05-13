@@ -25,13 +25,16 @@ public class GenerateEvents {
                 new Args(List.of())
         ));
         int idx = 0;
+
+        var parameterItems = new ArrayList<Args.Slot>();
         for(var param : parameters) {
             blocks.addAll(param.templateList().apply(idx));
+            parameterItems.add(new Args.Slot(new VarVariable("local." + idx, VarVariable.Scope.LINE), idx));
             idx += 1;
         }
         blocks.add(new CallFunctionAction(
                 functionToCall,
-                new Args(List.of())
+                new Args(parameterItems)
         ));
         return blocks;
     }
