@@ -253,27 +253,6 @@ public class ClassCompiler {
                 var count = point.popStack();
 
                 var blocks = new ArrayList<>(CompilerPoint.allocateMemory("array_ptr_tmp"));
-                blocks.add(new SetVarAction(
-                        "CreateList",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("memory/%var(array_ptr_tmp)", VarVariable.Scope.GAME), 0)
-                        ))
-                ));
-                blocks.add(new RepeatAction(
-                        "Multiple",
-                        new Args(List.of(
-                                new Args.Slot(count, 0)
-                        ))
-                ));
-                blocks.add(new Bracket(Bracket.Direction.OPEN, Bracket.Type.REPEAT));
-                blocks.add(new SetVarAction(
-                        "AppendValue",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("memory/%var(array_ptr_tmp)", VarVariable.Scope.GAME), 0),
-                                new Args.Slot(new VarNumber("0"), 1)
-                        ))
-                ));
-                blocks.add(new Bracket(Bracket.Direction.CLOSE, Bracket.Type.REPEAT));
                 blocks.add(point.pushStack(new VarString("%var(array_ptr_tmp)")));
                 yield blocks;
             }
@@ -282,30 +261,7 @@ public class ClassCompiler {
                 var arrayRef = point.popStack();
 
                 yield List.of(
-                        new SetVarAction(
-                                "=",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(arrayRef, 1)
-                                ))
-                        ),
-                        new SetVarAction(
-                                "+",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("idx", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(index, 1),
-                                        new Args.Slot(new VarNumber("1"), 2)
-                                ))
-                        ),
-                        new SetVarAction(
-                                "GetListValue",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("out", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(new VarVariable("memory/%var(tmp)", VarVariable.Scope.GAME), 1),
-                                        new Args.Slot(new VarNumber("%var(idx)"), 2)
-                                ))
-                        ),
-                        point.pushStack(new VarVariable("out", VarVariable.Scope.LINE))
+                        point.pushStack(new VarVariable("memory/%var(" + arrayRef.name() + ")[%var(" + index.name() + ")]", VarVariable.Scope.GAME))
                 );
             }
             case ArrayStoreInstruction arrayStoreInstruction -> {
@@ -317,24 +273,8 @@ public class ClassCompiler {
                         new SetVarAction(
                                 "=",
                                 new Args(List.of(
-                                        new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(arrayRef, 1)
-                                ))
-                        ),
-                        new SetVarAction(
-                                "+",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("idx", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(index, 1),
-                                        new Args.Slot(new VarNumber("1"), 2)
-                                ))
-                        ),
-                        new SetVarAction(
-                                "SetListValue",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("memory/%var(tmp)", VarVariable.Scope.GAME), 0),
-                                        new Args.Slot(new VarNumber("%var(idx)"), 1),
-                                        new Args.Slot(value, 2)
+                                        new Args.Slot(new VarVariable("memory/%var(" +  arrayRef.name() + ")[%var(" + index.name() + ")]", VarVariable.Scope.GAME), 0),
+                                        new Args.Slot(value, 1)
                                 ))
                         )
                 );

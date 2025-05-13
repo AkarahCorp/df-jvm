@@ -2,7 +2,8 @@ package df;
 
 public class Events {
     public static void playerJoin(Player p) {
-        p.sendMessage("Welcome!");
+        int[] arr = new int[]{10, 15, 19};
+        p.damage(arr[2]);
     }
 
     public static void playerLeave(Player p) {
