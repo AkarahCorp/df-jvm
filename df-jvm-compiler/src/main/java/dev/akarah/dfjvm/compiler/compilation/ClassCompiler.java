@@ -158,6 +158,10 @@ public class ClassCompiler {
                         + "#" + invokeInstruction.method().name()
                         + invokeInstruction.typeSymbol().descriptorString();
 
+                if(functionName.equals("java/lang/Object#<init>()V")) {
+                    yield List.of();
+                }
+
                 var instructions = new ArrayList<TemplateBlock>();
 
                 int si = 0;
@@ -204,7 +208,7 @@ public class ClassCompiler {
                     new SetVarAction(
                             "=",
                             new Args(List.of(
-                                    new Args.Slot(new VarVariable("stack[%var(r_depth)][returned]", VarVariable.Scope.LOCAL), 0),
+                                    new Args.Slot(new VarVariable("rt.%var(r_depth)", VarVariable.Scope.LOCAL), 0),
                                     new Args.Slot(point.popStack(), 1)
                             ))
                     ),
@@ -318,7 +322,7 @@ public class ClassCompiler {
                     "=",
                     new Args(List.of(
                             new Args.Slot(
-                                    new VarVariable("stack[%var(r_depth)][" + this.stackPointer().incrementAndGet() + "]", VarVariable.Scope.LOCAL),
+                                    new VarVariable("stack." + this.stackPointer().incrementAndGet(), VarVariable.Scope.LINE),
                                     0
                             ),
                             new Args.Slot(varItem, 1)
@@ -385,12 +389,12 @@ public class ClassCompiler {
                                     new Args.Slot(new VarNumber("1"), 2)
                             ))
                     ),
-                    this.pushStack(new VarVariable("stack[%var(r1_depth)][returned]", VarVariable.Scope.LOCAL))
+                    this.pushStack(new VarVariable("rt.%var(r1_depth)", VarVariable.Scope.LOCAL))
             );
         }
 
         public VarVariable popStack() {
-            return new VarVariable("stack[%var(r_depth)][" + this.stackPointer().getAndDecrement() + "]", VarVariable.Scope.LOCAL);
+            return new VarVariable("stack." + this.stackPointer().getAndDecrement(), VarVariable.Scope.LINE);
         }
 
         public static SetVarAction setLocal(int local, VarItem varItem) {
@@ -432,7 +436,7 @@ public class ClassCompiler {
             return new SetVarAction(
                     "=",
                     new Args(List.of(
-                            new Args.Slot(new VarVariable("stack[%var(r_depth)][returned]", VarVariable.Scope.LOCAL), 0),
+                            new Args.Slot(new VarVariable("rt.%var(r_depth)", VarVariable.Scope.LOCAL), 0),
                             new Args.Slot(varItem, 1)
                     ))
             );
