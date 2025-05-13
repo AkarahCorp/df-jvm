@@ -24,11 +24,11 @@ public class TypeUtils {
                         "SetAllCoords",
                         new Args(List.of(
                                 new Args.Slot(new VarVariable(storeInTempVar, VarVariable.Scope.LINE), 0),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),x)"), 1),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),y)"), 2),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),z)"), 3),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),pitch)"), 4),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),yaw)"), 5),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).x)"), 1),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).y)"), 2),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).z)"), 3),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).pitch)"), 4),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).yaw)"), 5),
                                 new Args.Slot(new VarBlockTag(
                                         "Plot coordinate",
                                         "Coordinate Type",
@@ -53,9 +53,9 @@ public class TypeUtils {
                         "Vector",
                         new Args(List.of(
                                 new Args.Slot(new VarVariable(storeInTempVar, VarVariable.Scope.LINE), 0),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),x)"), 1),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),y)"), 2),
-                                new Args.Slot(new VarNumber("%entry(memory/%var(refVar),z)"), 3)
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).x)"), 1),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).y)"), 2),
+                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).z)"), 3)
                         ))
                 )
         );
