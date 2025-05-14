@@ -27,9 +27,7 @@ public class Main {
 
         var data = ClassData.forClassModels(models);
 
-        var actionRegistry = ActionRegistry.create()
-                .withPlayerActions()
-                .withJavaMethods();
+        var actionRegistry = ActionRegistry.create();
 
         var classCompiler = ClassCompiler.forData(data).withActionRegistry(actionRegistry);
 

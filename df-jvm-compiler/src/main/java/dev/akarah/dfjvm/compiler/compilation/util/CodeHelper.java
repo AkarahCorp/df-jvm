@@ -55,6 +55,10 @@ public class CodeHelper {
         );
     }
 
+    public static VarVariable returnVariable() {
+        return new VarVariable("returned", VarVariable.Scope.LINE);
+    }
+
 
 
     public static TemplateBlock callFunction(String name, List<VarItem> parameters) {

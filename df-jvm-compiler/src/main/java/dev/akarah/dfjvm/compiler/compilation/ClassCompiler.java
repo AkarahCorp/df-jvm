@@ -247,9 +247,13 @@ public class ClassCompiler {
 
 
     public List<TemplateBlock> generateInvoke(InvokeInstruction invokeInstruction, CompilerPoint point, StackInfo stackInfo) {
+
+
         var functionName = invokeInstruction.method().owner().asInternalName()
                 + "#" + invokeInstruction.method().name()
                 + invokeInstruction.typeSymbol().descriptorString();
+
+        var isCustomFunction = this.actionRegistry.actionSuppliers.containsKey(functionName);
 
         if(functionName.equals("java/lang/Object#<init>()V")) {
             return List.of();
@@ -257,24 +261,28 @@ public class ClassCompiler {
 
         var instructions = new ArrayList<TemplateBlock>();
 
-        int si = 0;
-        if(invokeInstruction.opcode() != Opcode.INVOKESTATIC) {
-            si = 1;
+        // stackParameters is needed since StackInfo#popStack pops values off the stack in the wrong order
+        // this array stores the values so we can reference them in the correct order through List#removeLast
+        List<VarItem> stackParameters = new ArrayList<>();
+        for(var idx = 0; idx < invokeInstruction.typeSymbol().parameterCount(); idx++) {
+            stackParameters.add(stackInfo.popStack());
         }
 
-        var parameters = new ArrayList<VarItem>();
+        List<VarItem> parameters = new ArrayList<>();
         for(var idx = 0; idx < invokeInstruction.typeSymbol().parameterCount(); idx++) {
-            parameters.add(stackInfo.popStack());
             var parameterSymbol = invokeInstruction.typeSymbol().parameterList().get(idx);
+            parameters.add(stackParameters.removeLast());
             if(parameterSymbol.descriptorString().equals("D") || parameterSymbol.descriptorString().equals("L")) {
                 parameters.add(new VarString("unused"));
             }
         }
+
         if(invokeInstruction.opcode() != Opcode.INVOKESTATIC) {
             parameters.addFirst(stackInfo.popStack());
         }
 
-        if(this.actionRegistry.actionSuppliers.containsKey(functionName)) {
+        System.out.println("fn: " + functionName + ", params: " + parameters);
+        if(isCustomFunction) {
             instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).apply(parameters));
         } else {
             instructions.add(CodeHelper.callFunction(functionName, parameters));

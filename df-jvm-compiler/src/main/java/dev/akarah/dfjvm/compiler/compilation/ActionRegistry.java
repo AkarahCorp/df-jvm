@@ -6,9 +6,7 @@ import dev.akarah.codetemplate.blocks.SetVarAction;
 import dev.akarah.codetemplate.blocks.types.Args;
 import dev.akarah.codetemplate.blocks.types.SelectionTarget;
 import dev.akarah.codetemplate.template.TemplateBlock;
-import dev.akarah.codetemplate.varitem.VarItem;
-import dev.akarah.codetemplate.varitem.VarString;
-import dev.akarah.codetemplate.varitem.VarVariable;
+import dev.akarah.codetemplate.varitem.*;
 import dev.akarah.dfjvm.compiler.ListUtils;
 import dev.akarah.dfjvm.compiler.compilation.util.CodeHelper;
 import dev.akarah.dfjvm.compiler.compilation.util.TypeUtils;
@@ -23,7 +21,10 @@ public class ActionRegistry {
     Map<String, Function<List<VarItem>, List<TemplateBlock>>> actionSuppliers = new HashMap<>();
 
     public static ActionRegistry create() {
-        return new ActionRegistry();
+        return new ActionRegistry()
+                .withJavaMethods()
+                .withPlayerActions()
+                .withLocationMethods();
     }
 
     public ActionRegistry withJavaMethods() {
@@ -36,6 +37,87 @@ public class ActionRegistry {
                     )
             ),
             CodeHelper.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
+        ));
+    }
+
+    public ActionRegistry withLocationMethods() {
+        return this.with("df/Location#x()D", locals -> List.of(
+                new SetVarAction(
+                        "GetCoord",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "GetCoord", "set_var"), 25)
+                                .set(new VarBlockTag("X", "Coordinate", "GetCoord", "set_var"), 26)
+                )
+        )).with("df/Location#y()D", locals -> List.of(
+                new SetVarAction(
+                        "GetCoord",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "GetCoord", "set_var"), 25)
+                                .set(new VarBlockTag("Y", "Coordinate", "GetCoord", "set_var"), 26)
+                )
+        )).with("df/Location#z()D", locals -> List.of(
+                new SetVarAction(
+                        "GetCoord",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "GetCoord", "set_var"), 25)
+                                .set(new VarBlockTag("Z", "Coordinate", "GetCoord", "set_var"), 26)
+                )
+        )).with("df/Location#of(DDD)Ldf/Location;", locals -> List.of(
+                new SetVarAction(
+                        "SetAllCoords",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(locals.get(2), 2)
+                                .set(locals.get(4), 3)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "SetAllCoords", "set_var"), 26)
+                )
+        )).with("df/Location#zeroed()Ldf/Location;", locals -> List.of(
+                new SetVarAction(
+                        "SetAllCoords",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(new VarNumber("0"), 1)
+                                .set(new VarNumber("0"), 2)
+                                .set(new VarNumber("0"), 3)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "SetAllCoords", "set_var"), 26)
+                )
+        )).with("df/Location#withX(D)Ldf/Location;", locals -> List.of(
+                new SetVarAction(
+                        "SetCoord",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(locals.get(1), 2)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "SetCoord", "set_var"), 25)
+                                .set(new VarBlockTag("X", "Coordinate", "SetCoord", "set_var"), 26)
+                )
+        )).with("df/Location#withY(D)Ldf/Location;", locals -> List.of(
+                new SetVarAction(
+                        "SetCoord",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(locals.get(1), 2)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "SetCoord", "set_var"), 25)
+                                .set(new VarBlockTag("Y", "Coordinate", "SetCoord", "set_var"), 26)
+                )
+        )).with("df/Location#withZ(D)Ldf/Location;", locals -> List.of(
+                new SetVarAction(
+                        "SetCoord",
+                        Args.empty()
+                                .set(CodeHelper.returnVariable(), 0)
+                                .set(locals.getFirst(), 1)
+                                .set(locals.get(1), 2)
+                                .set(new VarBlockTag("Plot coordinate", "Coordinate Type", "SetCoord", "set_var"), 25)
+                                .set(new VarBlockTag("Z", "Coordinate", "SetCoord", "set_var"), 26)
+                )
         ));
     }
 
@@ -67,11 +149,17 @@ public class ActionRegistry {
                 List.of(locals.get(1)),
                 locals
         )).with("df/Player#teleport(Ldf/Location;)V", locals -> ListUtils.join(
-                TypeUtils.dictToLoc(locals.get(1), "loc"),
                 ActionRegistry.runForPlayer(
                         "Teleport",
                         List.of(
-                                new VarVariable("loc", VarVariable.Scope.LINE)
+                                locals.get(1)
+                        ),
+                        locals
+                ),
+                ActionRegistry.runForPlayer(
+                        "SendMessage",
+                        List.of(
+                                locals.get(1)
                         ),
                         locals
                 )
