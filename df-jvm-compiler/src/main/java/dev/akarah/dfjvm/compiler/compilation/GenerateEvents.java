@@ -52,7 +52,7 @@ public class GenerateEvents {
         newCodeblocks.add(new Bracket(Bracket.Direction.OPEN, Bracket.Type.NORMAL));
 
         for(var loadedClass : classData.getClassLoadingOrder()) {
-            newCodeblocks.add(StackInfo.callFunction(loadedClass + "#<clinit>()V", List.of()));
+            newCodeblocks.add(CodeHelper.callFunction(loadedClass + "#<clinit>()V", List.of()));
         }
 
         newCodeblocks.add(new Bracket(Bracket.Direction.CLOSE, Bracket.Type.NORMAL));
@@ -107,14 +107,14 @@ public class GenerateEvents {
                                         new Args.Slot(new VarString("%" + selectionTarget.name().toLowerCase(Locale.ROOT)), 1)
                                 ))
                         ),
-                        StackInfo.setLocal(idx, new VarString("ref@%var(memory/idx)"))
+                        CodeHelper.setLocal(idx, new VarString("ref@%var(memory/idx)"))
                 )
         );
     }
 
     public static EventParameter varItem(VarItem varItem) {
         return new EventParameter(
-                idx -> List.of(StackInfo.setLocal(idx, varItem))
+                idx -> List.of(CodeHelper.setLocal(idx, varItem))
         );
     }
 

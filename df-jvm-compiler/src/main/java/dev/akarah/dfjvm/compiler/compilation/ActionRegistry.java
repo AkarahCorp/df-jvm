@@ -33,7 +33,7 @@ public class ActionRegistry {
                             new Args.Slot(locals.getFirst(), 1)
                     ))
             ),
-            StackInfo.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
+            CodeHelper.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
         ));
     }
 
@@ -41,63 +41,35 @@ public class ActionRegistry {
         return this.with("df/Player#sendMessage(Ljava/lang/String;)V", locals -> ListUtils.join(
                 TypeUtils.stringToComponent(locals.get(1), "comp"),
                 ActionRegistry.runForPlayer(
-                        new PlayerAction(
-                                "SendMessage",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("comp", VarVariable.Scope.LINE), 0)
-                                )),
-                                Optional.of(SelectionTarget.SELECTION)
-                        ),
+                        "SendMessage",
+                        List.of(new VarVariable("comp", VarVariable.Scope.LINE)),
                         locals
                 )
         )).with("df/Player#sendActionBar(Ljava/lang/String;)V", locals -> ListUtils.join(
                 TypeUtils.stringToComponent(locals.get(1), "comp"),
                 ActionRegistry.runForPlayer(
-                        new PlayerAction(
-                                "ActionBar",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("comp", VarVariable.Scope.LINE), 0)
-                                )),
-                                Optional.of(SelectionTarget.SELECTION)
-                        ),
+                        "ActionBar",
+                        List.of(new VarVariable("comp", VarVariable.Scope.LINE)),
                         locals
                 )
         )).with("df/Player#heal(I)V", locals -> ActionRegistry.runForPlayer(
-                new PlayerAction(
-                        "Heal",
-                        new Args(List.of(
-                                new Args.Slot(locals.get(1), 0)
-                        )),
-                        Optional.of(SelectionTarget.SELECTION)
-                ),
+                "Heal",
+                List.of(locals.get(1)),
                 locals
         )).with("df/Player#damage(I)V", locals -> ActionRegistry.runForPlayer(
-                new PlayerAction(
-                        "Damage",
-                        new Args(List.of(
-                                new Args.Slot(locals.get(1), 0)
-                        )),
-                        Optional.of(SelectionTarget.SELECTION)
-                ),
+                "Damage",
+                List.of(locals.get(1)),
                 locals
         )).with("df/Player#setHealth(I)V", locals -> ActionRegistry.runForPlayer(
-                new PlayerAction(
-                        "SetHealth",
-                        new Args(List.of(
-                                new Args.Slot(locals.get(1), 0)
-                        )),
-                        Optional.of(SelectionTarget.SELECTION)
-                ),
+                "SetHealth",
+                List.of(locals.get(1)),
                 locals
         )).with("df/Player#teleport(Ldf/Location;)V", locals -> ListUtils.join(
                 TypeUtils.dictToLoc(locals.get(1), "loc"),
                 ActionRegistry.runForPlayer(
-                        new PlayerAction(
-                                "Teleport",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("loc", VarVariable.Scope.LINE), 0)
-                                )),
-                                Optional.of(SelectionTarget.SELECTION)
+                        "Teleport",
+                        List.of(
+                                new VarVariable("loc", VarVariable.Scope.LINE)
                         ),
                         locals
                 )
@@ -109,7 +81,7 @@ public class ActionRegistry {
         return this;
     }
 
-    public static List<TemplateBlock> runForPlayer(PlayerAction base, List<VarItem> locals) {
+    public static List<TemplateBlock> runForPlayer(String action, Args args, List<VarItem> locals) {
         return List.of(
                 new SetVarAction(
                         "=",
@@ -124,11 +96,19 @@ public class ActionRegistry {
                                 new Args.Slot(new VarString("%var(memory/%var(tmp.player_name).player)"), 0)
                         ))
                 ),
-                base,
+                new PlayerAction(
+                        action,
+                        args,
+                        Optional.of(SelectionTarget.SELECTION)
+                ),
                 new SelectObjectAction(
                         "Reset",
                         new Args(List.of())
                 )
         );
+    }
+
+    public static List<TemplateBlock> runForPlayer(String action, List<VarItem> parameters, List<VarItem> locals) {
+        return runForPlayer(action, CodeHelper.parametersToArgs(parameters), locals);
     }
 }

@@ -36,7 +36,7 @@ public class Main {
                 .flatMap(Collection::stream)
                 .map(TemplateSplitter::split)
                 .flatMap(Collection::stream)
-                .filter(template -> StackInfo.templateIsLoaded(template, data))
+                .filter(template -> CodeHelper.templateIsLoaded(template, data))
                 .map(CodeTemplateData::gzip)
                 .toList();
 

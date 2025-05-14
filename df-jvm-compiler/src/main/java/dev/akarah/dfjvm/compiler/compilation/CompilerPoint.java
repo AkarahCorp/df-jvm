@@ -6,8 +6,6 @@ import dev.akarah.codetemplate.varitem.VarVariable;
 
 import java.lang.classfile.*;
 import java.lang.classfile.attribute.CodeAttribute;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 

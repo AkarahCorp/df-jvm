@@ -8,7 +8,6 @@ import dev.akarah.codetemplate.template.TemplateBlock;
 import dev.akarah.codetemplate.varitem.*;
 
 import java.lang.classfile.*;
-import java.lang.classfile.attribute.CodeAttribute;
 import java.lang.classfile.instruction.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +46,7 @@ public class ClassCompiler {
         var blocks = new ArrayList<TemplateBlock>();
         var point = CompilerPoint.create(methodModel, codeModel, classModel);
         var si = new StackInfo();
-        blocks.add(StackInfo.beginFunction(point.functionName(), point.getCopiedLocalParameters().toList(), "False"));
+        blocks.add(CodeHelper.beginFunction(point.functionName(), point.getCopiedLocalParameters().toList(), "False"));
         codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point, si)));
         return blocks;
     }
@@ -59,11 +58,11 @@ public class ClassCompiler {
                 case LabelTarget labelTarget -> {
                     var bci = point.labelToBci(labelTarget.label());
                     yield List.of(
-                            StackInfo.callFunction(
+                            CodeHelper.callFunction(
                                     point.functionName(bci),
                                     point.getAllLocals().map(x -> (VarItem) x).toList()
                             ),
-                            StackInfo.beginFunction(
+                            CodeHelper.beginFunction(
                                     point.functionName(bci),
                                     point.getReferencedLocalParameters().toList(),
                                     "True"
@@ -95,7 +94,7 @@ public class ClassCompiler {
     public List<TemplateBlock> compileInstruction(Instruction instruction, CompilerPoint point, StackInfo stackInfo) {
         return switch (instruction) {
             case NewObjectInstruction _ -> {
-                var blocks = new ArrayList<>(StackInfo.allocateMemory("tmp"));
+                var blocks = new ArrayList<>(CodeHelper.allocateMemory("tmp"));
                 blocks.add(stackInfo.pushStack(new VarString("%var(tmp)")));
                 yield blocks;
             }
@@ -143,7 +142,7 @@ public class ClassCompiler {
 
                 var targetLabel = branchInstruction.target();
                 var name = point.functionName(point.labelToBci(targetLabel));
-                blocks.add(StackInfo.callFunction(name, point.getAllLocals().map(x -> (VarItem) x).toList()));
+                blocks.add(CodeHelper.callFunction(name, point.getAllLocals().map(x -> (VarItem) x).toList()));
                 blocks.add(new ControlAction("Return", new Args(List.of())));
 
                 if(blockAdded)
@@ -255,7 +254,7 @@ public class ClassCompiler {
                 if(this.actionRegistry.actionSuppliers.containsKey(functionName)) {
                     instructions.addAll(this.actionRegistry.actionSuppliers.get(functionName).apply(parameters));
                 } else {
-                    instructions.add(StackInfo.callFunction(functionName, parameters));
+                    instructions.add(CodeHelper.callFunction(functionName, parameters));
                 }
 
 
@@ -265,7 +264,7 @@ public class ClassCompiler {
                 yield instructions;
             }
             case LoadInstruction loadInstruction -> List.of(
-                    stackInfo.pushStack(StackInfo.getLocal(loadInstruction.slot()))
+                    stackInfo.pushStack(CodeHelper.getLocal(loadInstruction.slot()))
             );
             case ReturnInstruction _ -> List.of(
                     new SetVarAction(
@@ -278,7 +277,7 @@ public class ClassCompiler {
                     new ControlAction("Return", new Args(List.of()))
             );
             case StoreInstruction storeInstruction -> List.of(
-                    StackInfo.setLocal(storeInstruction.slot(), stackInfo.popStack())
+                    CodeHelper.setLocal(storeInstruction.slot(), stackInfo.popStack())
             );
             case IncrementInstruction incrementInstruction -> List.of(
                     new SetVarAction(
@@ -327,7 +326,7 @@ public class ClassCompiler {
             };
             case NewPrimitiveArrayInstruction newPrimitiveArrayInstruction -> {
                 var count = stackInfo.popStack();
-                var blocks = new ArrayList<>(StackInfo.allocateMemory("array_ptr_tmp"));
+                var blocks = new ArrayList<>(CodeHelper.allocateMemory("array_ptr_tmp"));
                 blocks.add(stackInfo.pushStack(new VarString("%var(array_ptr_tmp)")));
                 yield blocks;
             }
