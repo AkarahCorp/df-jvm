@@ -74,8 +74,14 @@ public class Args {
 
     public Args insert(VarItem varItem, int slot) {
         var keySet = this.varItemMap.keySet().stream().sorted().toList().reversed();
+
+        var lastKey = slot;
         for(var key : keySet) {
+            if((key - 1 > lastKey)) {
+                continue;
+            }
             if(key >= slot) {
+                lastKey = key;
                 var vi = this.varItemMap.remove(key);
                 this.varItemMap.put(key + 1, vi);
             }
