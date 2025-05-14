@@ -4,6 +4,7 @@ import dev.akarah.codetemplate.blocks.CallFunctionAction;
 import dev.akarah.codetemplate.blocks.FunctionAction;
 import dev.akarah.codetemplate.blocks.SetVarAction;
 import dev.akarah.codetemplate.blocks.types.Args;
+import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateBlock;
 import dev.akarah.codetemplate.varitem.*;
 
@@ -155,5 +156,13 @@ public class StackInfo {
                     )
             );
         }
+    }
+
+    public static boolean templateIsLoaded(CodeTemplateData templateData, ClassData classData) {
+        if(templateData.code().blocks().getFirst() instanceof FunctionAction functionAction) {
+            var clazzName = functionAction.data().split("#")[0];
+            return classData.getClassLoadingOrder().contains(clazzName);
+        }
+        return true;
     }
 }

@@ -6,8 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TemplateSplitter {
-    public static List<GzippedCodeTemplateData> split(CodeTemplateData codeTemplateData) {
-        var lists = new ArrayList<GzippedCodeTemplateData>();
+    public static List<CodeTemplateData> split(CodeTemplateData codeTemplateData) {
+        var lists = new ArrayList<CodeTemplateData>();
 
         var currentList = new ArrayList<TemplateBlock>();
         for(var block : codeTemplateData.code().blocks()) {
@@ -18,7 +18,7 @@ public class TemplateSplitter {
                             "x",
                             "1",
                             new CodeTemplate(currentList)
-                    ).gzip());
+                    ));
                 }
                 currentList = new ArrayList<>();
                 currentList.add(functionAction);
@@ -33,9 +33,8 @@ public class TemplateSplitter {
                     "x",
                     "1",
                     new CodeTemplate(currentList)
-            ).gzip());
+            ));
         }
-
 
         return lists;
     }

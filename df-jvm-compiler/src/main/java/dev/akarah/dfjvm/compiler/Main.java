@@ -1,11 +1,9 @@
 package dev.akarah.dfjvm.compiler;
 
 import dev.akarah.codetemplate.codeclient.CodeClientSend;
+import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateSplitter;
-import dev.akarah.dfjvm.compiler.compilation.ActionRegistry;
-import dev.akarah.dfjvm.compiler.compilation.ClassCompiler;
-import dev.akarah.dfjvm.compiler.compilation.ClassData;
-import dev.akarah.dfjvm.compiler.compilation.GenerateEvents;
+import dev.akarah.dfjvm.compiler.compilation.*;
 import dev.akarah.dfjvm.compiler.io.ClassFileFinder;
 
 import java.io.IOException;
@@ -38,6 +36,8 @@ public class Main {
                 .flatMap(Collection::stream)
                 .map(TemplateSplitter::split)
                 .flatMap(Collection::stream)
+                .filter(template -> StackInfo.templateIsLoaded(template, data))
+                .map(CodeTemplateData::gzip)
                 .toList();
 
 
@@ -46,7 +46,7 @@ public class Main {
             cc.push(template);
         }
 
-        for(var event : GenerateEvents.allPlayerEvents()) {
+        for(var event : GenerateEvents.allPlayerEvents(data)) {
             cc.push(event);
         }
 

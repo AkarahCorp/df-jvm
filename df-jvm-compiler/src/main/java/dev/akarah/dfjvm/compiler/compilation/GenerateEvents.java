@@ -1,8 +1,6 @@
 package dev.akarah.dfjvm.compiler.compilation;
 
-import dev.akarah.codetemplate.blocks.CallFunctionAction;
-import dev.akarah.codetemplate.blocks.PlayerEvent;
-import dev.akarah.codetemplate.blocks.SetVarAction;
+import dev.akarah.codetemplate.blocks.*;
 import dev.akarah.codetemplate.blocks.types.Args;
 import dev.akarah.codetemplate.blocks.types.SelectionTarget;
 import dev.akarah.codetemplate.template.CodeTemplate;
@@ -41,7 +39,27 @@ public class GenerateEvents {
 
     public static List<TemplateBlock> generateJoinEvent(List<EventParameter> parameters, ClassData classData) {
         var base = generatePlayerEvent("Join", "df/Events#player$join(Ldf/Player;)V", parameters);
+        var newCodeblocks = new ArrayList<TemplateBlock>();
         // TODO: call <clinit> methods for classes
+
+        newCodeblocks.add(new IfVarAction(
+                "=",
+                new Args(List.of(
+                        new Args.Slot(new VarGameValue("Player Count", "Default"), 0),
+                        new Args.Slot(new VarNumber("1"), 1)
+                ))
+        ));
+        newCodeblocks.add(new Bracket(Bracket.Direction.OPEN, Bracket.Type.NORMAL));
+
+        for(var loadedClass : classData.getClassLoadingOrder()) {
+            newCodeblocks.add(StackInfo.callFunction(loadedClass + "#<clinit>()V", List.of()));
+        }
+
+        newCodeblocks.add(new Bracket(Bracket.Direction.CLOSE, Bracket.Type.NORMAL));
+
+        base.addAll(1, newCodeblocks);
+
+
         return base;
     }
 
