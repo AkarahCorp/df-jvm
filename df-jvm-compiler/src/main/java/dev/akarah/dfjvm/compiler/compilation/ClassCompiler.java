@@ -47,14 +47,14 @@ public class ClassCompiler {
         var blocks = new ArrayList<TemplateBlock>();
         var point = CompilerPoint.create(methodModel, codeModel, classModel);
         var si = new StackInfo();
-        blocks.add(StackInfo.beginFunction(point.functionName(), point.getCopiedLocalParameters().toList()));
+        blocks.add(StackInfo.beginFunction(point.functionName(), point.getCopiedLocalParameters().toList(), "False"));
         codeModel.forEach(codeElement -> blocks.addAll(compileCodeElement(codeElement, point, si)));
         return blocks;
     }
 
     public List<TemplateBlock> compileCodeElement(CodeElement codeElement, CompilerPoint point, StackInfo stackInfo) {
         return switch (codeElement) {
-            case Instruction instruction -> compileInstruction(instruction, point, stackInfo, true);
+            case Instruction instruction -> compileInstruction(instruction, point, stackInfo, false);
             case PseudoInstruction pseudoInstruction -> switch (pseudoInstruction) {
                 case LabelTarget labelTarget -> {
                     var bci = point.labelToBci(labelTarget.label());
@@ -65,7 +65,8 @@ public class ClassCompiler {
                             ),
                             StackInfo.beginFunction(
                                     point.functionName(bci),
-                                    point.getReferencedLocalParameters().toList()
+                                    point.getReferencedLocalParameters().toList(),
+                                    "True"
                             )
                     );
                 }
@@ -175,6 +176,27 @@ public class ClassCompiler {
                             )
                     );
                 }
+                case GETSTATIC -> List.of(
+                        stackInfo.pushStack(new VarVariable(
+                                "static/"
+                                        + fieldInstruction.field().owner().asInternalName()
+                                        + "#" + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME))
+                );
+                case PUTSTATIC -> List.of(
+                        new SetVarAction(
+                                "=",
+                                new Args(List.of(
+                                        new Args.Slot(
+                                                new VarVariable(
+                                                        "static/"
+                                                                + fieldInstruction.field().owner().asInternalName()
+                                                                + "#" + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME),
+                                                0
+                                        ),
+                                        new Args.Slot(stackInfo.popStack(), 1)
+                                ))
+                        )
+                );
                 default -> throw new RuntimeException("uh not supported " + fieldInstruction.opcode() + " byebye");
             };
             case ConstantInstruction constantInstruction -> {
@@ -257,6 +279,15 @@ public class ClassCompiler {
             );
             case StoreInstruction storeInstruction -> List.of(
                     StackInfo.setLocal(storeInstruction.slot(), stackInfo.popStack())
+            );
+            case IncrementInstruction incrementInstruction -> List.of(
+                    new SetVarAction(
+                            "+=",
+                            new Args(List.of(
+                                    new Args.Slot(new VarVariable("local." + incrementInstruction.slot(), VarVariable.Scope.LINE), 0),
+                                    new Args.Slot(new VarNumber(String.valueOf(incrementInstruction.constant())), 1)
+                            ))
+                    )
             );
             case OperatorInstruction operatorInstruction -> {
                 Function<String, List<TemplateBlock>> binaryOp = action -> List.of(

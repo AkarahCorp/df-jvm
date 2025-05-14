@@ -114,7 +114,7 @@ public class StackInfo {
         }
     }
 
-    public static TemplateBlock beginFunction(String name, List<VarParameter> parameters) {
+    public static TemplateBlock beginFunction(String name, List<VarParameter> parameters, String hiddenValue) {
         if(!name.contains(")V")) {
             return new FunctionAction(
                     name,
@@ -122,7 +122,18 @@ public class StackInfo {
                             Stream.concat(
                                             IntStream.range(1, parameters.size()+1)
                                                     .mapToObj(idx -> new Args.Slot(parameters.get(idx-1), idx)),
-                                            Stream.of(new Args.Slot(new VarParameter("returned", "var", false, false), 0))
+                                            Stream.of(
+                                                    new Args.Slot(new VarParameter("returned", "var", false, false), 0),
+                                                    new Args.Slot(
+                                                            new VarBlockTag(
+                                                                    hiddenValue,
+                                                                    "Is Hidden",
+                                                                    "dynamic",
+                                                                    "func"
+                                                            ),
+                                                            26
+                                                    )
+                                            )
                                     )
                                     .toList()
                     )
@@ -131,9 +142,16 @@ public class StackInfo {
             return new FunctionAction(
                     name,
                     new Args(
-                            IntStream.range(0, parameters.size())
-                                    .mapToObj(idx -> new Args.Slot(parameters.get(idx), idx))
-                                    .toList()
+                            Stream.concat(
+                                    IntStream.range(0, parameters.size())
+                                            .mapToObj(idx -> new Args.Slot(parameters.get(idx), idx)),
+                                    Stream.of(new Args.Slot(
+                                            new VarBlockTag(
+                                                    hiddenValue,
+                                                    "Is Hidden",
+                                                    "dynamic",
+                                                    "func"
+                                            ), 26))).toList()
                     )
             );
         }

@@ -39,11 +39,15 @@ public class GenerateEvents {
         return blocks;
     }
 
-    public static List<GzippedCodeTemplateData> allPlayerEvents() {
+    public static List<TemplateBlock> generateJoinEvent(List<EventParameter> parameters, ClassData classData) {
+        var base = generatePlayerEvent("Join", "df/Events#player$join(Ldf/Player;)V", parameters);
+        // TODO: call <clinit> methods for classes
+        return base;
+    }
+
+    public static List<GzippedCodeTemplateData> allPlayerEvents(ClassData classData) {
         return Stream.of(
-                        generatePlayerEvent("Join", "df/Events#player$join(Ldf/Player;)V", List.of(
-                                target(SelectionTarget.DEFAULT)
-                        )),
+                        generateJoinEvent(List.of(target(SelectionTarget.DEFAULT)), classData),
                         generatePlayerEvent("Leave", "df/Events#player$leave(Ldf/Player;)V", List.of(
                                 target(SelectionTarget.DEFAULT)
                         )),

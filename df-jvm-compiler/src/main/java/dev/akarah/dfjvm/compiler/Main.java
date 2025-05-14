@@ -1,8 +1,6 @@
 package dev.akarah.dfjvm.compiler;
 
 import dev.akarah.codetemplate.codeclient.CodeClientSend;
-import dev.akarah.codetemplate.template.CodeTemplateData;
-import dev.akarah.codetemplate.template.GzippedCodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateSplitter;
 import dev.akarah.dfjvm.compiler.compilation.ActionRegistry;
 import dev.akarah.dfjvm.compiler.compilation.ClassCompiler;
@@ -12,7 +10,6 @@ import dev.akarah.dfjvm.compiler.io.ClassFileFinder;
 
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Collection;
 
 public class Main {
@@ -43,17 +40,17 @@ public class Main {
                 .flatMap(Collection::stream)
                 .toList();
 
-        System.out.println(templates);
 
         var cc = CodeClientSend.of();
         for(var template : templates) {
-            System.out.println(template);
             cc.push(template);
         }
 
         for(var event : GenerateEvents.allPlayerEvents()) {
             cc.push(event);
         }
+
+        System.out.println(data.getClassLoadingOrder());
         cc.finish();
     }
 
