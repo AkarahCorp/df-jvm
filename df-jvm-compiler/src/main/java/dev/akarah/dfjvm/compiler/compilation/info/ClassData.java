@@ -1,4 +1,4 @@
-package dev.akarah.dfjvm.compiler.compilation;
+package dev.akarah.dfjvm.compiler.compilation.info;
 
 
 import java.lang.classfile.ClassModel;

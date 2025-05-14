@@ -1,4 +1,4 @@
-package dev.akarah.dfjvm.compiler.compilation;
+package dev.akarah.dfjvm.compiler.compilation.util;
 
 import dev.akarah.codetemplate.blocks.SetVarAction;
 import dev.akarah.codetemplate.blocks.types.Args;

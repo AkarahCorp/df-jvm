@@ -1,6 +1,5 @@
-package dev.akarah.dfjvm.compiler.compilation;
+package dev.akarah.dfjvm.compiler.compilation.info;
 
-import dev.akarah.codetemplate.varitem.VarItem;
 import dev.akarah.codetemplate.varitem.VarParameter;
 import dev.akarah.codetemplate.varitem.VarVariable;
 

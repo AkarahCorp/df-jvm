@@ -6,6 +6,10 @@ import dev.akarah.codetemplate.template.CodeTemplate;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateBlock;
 import dev.akarah.codetemplate.varitem.*;
+import dev.akarah.dfjvm.compiler.compilation.info.ClassData;
+import dev.akarah.dfjvm.compiler.compilation.info.CompilerPoint;
+import dev.akarah.dfjvm.compiler.compilation.info.StackInfo;
+import dev.akarah.dfjvm.compiler.compilation.util.CodeHelper;
 
 import java.lang.classfile.*;
 import java.lang.classfile.instruction.*;

@@ -1,4 +1,4 @@
-package dev.akarah.dfjvm.compiler.compilation;
+package dev.akarah.dfjvm.compiler.compilation.util;
 
 import dev.akarah.codetemplate.blocks.CallFunctionAction;
 import dev.akarah.codetemplate.blocks.FunctionAction;
@@ -7,10 +7,10 @@ import dev.akarah.codetemplate.blocks.types.Args;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateBlock;
 import dev.akarah.codetemplate.varitem.*;
+import dev.akarah.dfjvm.compiler.compilation.info.ClassData;
 
 import java.util.List;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class CodeHelper {
     public static SetVarAction setLocal(int local, VarItem varItem) {

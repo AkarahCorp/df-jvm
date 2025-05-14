@@ -1,4 +1,4 @@
-package dev.akarah.dfjvm.compiler.compilation;
+package dev.akarah.dfjvm.compiler.compilation.util;
 
 import dev.akarah.codetemplate.blocks.*;
 import dev.akarah.codetemplate.blocks.types.Args;
@@ -8,6 +8,7 @@ import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.GzippedCodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateBlock;
 import dev.akarah.codetemplate.varitem.*;
+import dev.akarah.dfjvm.compiler.compilation.info.ClassData;
 
 import java.util.ArrayList;
 import java.util.List;

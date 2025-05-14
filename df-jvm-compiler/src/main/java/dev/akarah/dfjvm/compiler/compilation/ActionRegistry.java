@@ -10,6 +10,8 @@ import dev.akarah.codetemplate.varitem.VarItem;
 import dev.akarah.codetemplate.varitem.VarString;
 import dev.akarah.codetemplate.varitem.VarVariable;
 import dev.akarah.dfjvm.compiler.ListUtils;
+import dev.akarah.dfjvm.compiler.compilation.util.CodeHelper;
+import dev.akarah.dfjvm.compiler.compilation.util.TypeUtils;
 
 import java.util.HashMap;
 import java.util.List;

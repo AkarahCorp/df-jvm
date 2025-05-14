@@ -4,6 +4,9 @@ import dev.akarah.codetemplate.codeclient.CodeClientSend;
 import dev.akarah.codetemplate.template.CodeTemplateData;
 import dev.akarah.codetemplate.template.TemplateSplitter;
 import dev.akarah.dfjvm.compiler.compilation.*;
+import dev.akarah.dfjvm.compiler.compilation.info.ClassData;
+import dev.akarah.dfjvm.compiler.compilation.util.CodeHelper;
+import dev.akarah.dfjvm.compiler.compilation.util.GenerateEvents;
 import dev.akarah.dfjvm.compiler.io.ClassFileFinder;
 
 import java.io.IOException;
