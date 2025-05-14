@@ -15,27 +15,24 @@ public class TypeUtils {
         return List.of(
                 new SetVarAction(
                         "=",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("refVar", VarVariable.Scope.LINE), 0),
-                                new Args.Slot(dict, 1)
-                        ))
+                        Args.of(
+                                new VarVariable("refVar", VarVariable.Scope.LINE),
+                                dict
+                        )
                 ),
                 new SetVarAction(
                         "SetAllCoords",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable(storeInTempVar, VarVariable.Scope.LINE), 0),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).x)"), 1),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).y)"), 2),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).z)"), 3),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).pitch)"), 4),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).yaw)"), 5),
-                                new Args.Slot(new VarBlockTag(
-                                        "Plot coordinate",
-                                        "Coordinate Type",
-                                        "SetAllCoords",
-                                        "set_var"
-                                ), 26)
-                        ))
+                        Args.of(
+                                new VarVariable(storeInTempVar, VarVariable.Scope.LINE),
+                                new VarNumber("%var(memory/%var(refVar).x)"),
+                                new VarNumber("%var(memory/%var(refVar).y)"),
+                                new VarNumber("%var(memory/%var(refVar).z)"),
+                                new VarNumber("%var(memory/%var(refVar).pitch)"),
+                                new VarNumber("%var(memory/%var(refVar).yaw)")
+                        ).set(
+                                new VarBlockTag("Plot coordinate", "Coordinate Type", "SetAllCoords", "set_var"),
+                                26
+                        )
                 )
         );
     }
@@ -44,19 +41,19 @@ public class TypeUtils {
         return List.of(
                 new SetVarAction(
                         "=",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("refVar", VarVariable.Scope.LINE), 0),
-                                new Args.Slot(dict, 1)
-                        ))
+                        Args.of(
+                                new VarVariable("refVar", VarVariable.Scope.LINE),
+                                dict
+                        )
                 ),
                 new SetVarAction(
                         "Vector",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable(storeInTempVar, VarVariable.Scope.LINE), 0),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).x)"), 1),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).y)"), 2),
-                                new Args.Slot(new VarNumber("%var(memory/%var(refVar).z)"), 3)
-                        ))
+                        Args.of(
+                                new VarVariable(storeInTempVar, VarVariable.Scope.LINE),
+                                new VarNumber("%var(memory/%var(refVar).x)"),
+                                new VarNumber("%var(memory/%var(refVar).y)"),
+                                new VarNumber("%var(memory/%var(refVar).z)")
+                        )
                 )
         );
     }
@@ -65,29 +62,9 @@ public class TypeUtils {
         return List.of(
                 new SetVarAction(
                         "ParseMiniMessageExpr",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable(storeInTempVar, VarVariable.Scope.LINE), 0),
-                                new Args.Slot(string, 1),
-
-                                new Args.Slot(
-                                        new VarBlockTag(
-                                                "True",
-                                                "Parse Legacy Color Codes",
-                                                "ParseMiniMessageExpr",
-                                                "set_var"
-                                        ),
-                                        25
-                                ),
-                                new Args.Slot(
-                                        new VarBlockTag(
-                                                "Full",
-                                                "Allowed Tags",
-                                                "ParseMiniMessageExpr",
-                                                "set_var"
-                                        ),
-                                        26
-                                )
-                        ))
+                        Args.of(new VarVariable(storeInTempVar, VarVariable.Scope.LINE), string)
+                            .set(new VarBlockTag("True", "Parse Legacy Color Codes", "ParseMiniMessageExpr","set_var"), 25)
+                            .set(new VarBlockTag("Full","Allowed Tags","ParseMiniMessageExpr","set_var"), 26)
                 )
         );
     }

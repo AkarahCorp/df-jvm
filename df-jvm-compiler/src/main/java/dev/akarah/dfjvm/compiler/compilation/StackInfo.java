@@ -18,13 +18,10 @@ public class StackInfo {
     public SetVarAction pushStack(VarItem varItem) {
         return new SetVarAction(
                 "=",
-                new Args(List.of(
-                        new Args.Slot(
-                                new VarVariable("stack." + this.stackPointer().incrementAndGet(), VarVariable.Scope.LINE),
-                                0
-                        ),
-                        new Args.Slot(varItem, 1)
-                ))
+                Args.of(
+                        new VarVariable("stack." + this.stackPointer().incrementAndGet(), VarVariable.Scope.LINE),
+                        varItem
+                )
         );
     }
 

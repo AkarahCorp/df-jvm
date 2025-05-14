@@ -14,30 +14,6 @@ import java.util.Optional;
 
 public class Main {
     public static void main(String[] args) {
-        var template = new CodeTemplateData(
-                "",
-                "",
-                "1",
-                new CodeTemplate(List.of(
-                        new PlayerEvent(
-                                "Join",
-                                new Args(List.of())
-                        ),
-                        new PlayerAction(
-                                "SendMessage",
-                                new Args(List.of(
-                                        new Args.Slot(
-                                                new VarComponent("Hello %default!"),
-                                                0
-                                        )
-                                )),
-                                Optional.of(SelectionTarget.DEFAULT)
-                        )
-                ))
-        );
-
-        CodeClientSend.of()
-                .push(template.gzip())
-                .finish();
+        
     }
 }

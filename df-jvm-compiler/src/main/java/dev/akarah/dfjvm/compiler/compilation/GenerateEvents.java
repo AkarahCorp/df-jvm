@@ -20,7 +20,7 @@ public class GenerateEvents {
         var blocks = new ArrayList<TemplateBlock>();
         blocks.add(new PlayerEvent(
                 eventName,
-                new Args(List.of())
+                Args.empty()
         ));
         int idx = 0;
 
@@ -32,7 +32,7 @@ public class GenerateEvents {
         }
         blocks.add(new CallFunctionAction(
                 functionToCall,
-                new Args(parameterItems)
+                Args.ofSlots(parameterItems)
         ));
         return blocks;
     }
@@ -44,10 +44,10 @@ public class GenerateEvents {
 
         newCodeblocks.add(new IfVarAction(
                 "=",
-                new Args(List.of(
-                        new Args.Slot(new VarGameValue("Player Count", "Default"), 0),
-                        new Args.Slot(new VarNumber("1"), 1)
-                ))
+                Args.of(
+                        new VarGameValue("Player Count", "Default"),
+                        new VarNumber("1")
+                )
         ));
         newCodeblocks.add(new Bracket(Bracket.Direction.OPEN, Bracket.Type.NORMAL));
 
@@ -95,17 +95,17 @@ public class GenerateEvents {
                 idx -> List.of(
                         new SetVarAction(
                                 "+=",
-                                new Args(List.of(
+                                Args.of(
                                         new Args.Slot(new VarVariable("memory/idx", VarVariable.Scope.GAME), 0),
                                         new Args.Slot(new VarNumber("1"), 1)
-                                ))
+                                )
                         ),
                         new SetVarAction(
                                 "=",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("memory/ref@%var(memory/idx).player", VarVariable.Scope.GAME), 0),
-                                        new Args.Slot(new VarString("%" + selectionTarget.name().toLowerCase(Locale.ROOT)), 1)
-                                ))
+                                Args.of(
+                                        new VarVariable("memory/ref@%var(memory/idx).player", VarVariable.Scope.GAME),
+                                        new VarString("%" + selectionTarget.name().toLowerCase(Locale.ROOT))
+                                )
                         ),
                         CodeHelper.setLocal(idx, new VarString("ref@%var(memory/idx)"))
                 )

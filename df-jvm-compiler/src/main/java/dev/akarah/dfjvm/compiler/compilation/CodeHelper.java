@@ -16,13 +16,10 @@ public class CodeHelper {
     public static SetVarAction setLocal(int local, VarItem varItem) {
         return new SetVarAction(
                 "=",
-                new Args(List.of(
-                        new Args.Slot(
-                                new VarVariable("local." + local, VarVariable.Scope.LINE),
-                                0
-                        ),
-                        new Args.Slot(varItem, 1)
-                ))
+                Args.of(
+                        new VarVariable("local." + local, VarVariable.Scope.LINE),
+                        varItem
+                )
         );
     }
 
@@ -34,16 +31,16 @@ public class CodeHelper {
         return List.of(
                 new SetVarAction(
                         "+=",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("memory/idx", VarVariable.Scope.GAME), 0)
-                        ))
+                        Args.of(
+                                new VarVariable("memory/idx", VarVariable.Scope.GAME)
+                        )
                 ),
                 new SetVarAction(
                         "=",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable(placeholderVariable, VarVariable.Scope.LINE), 0),
-                                new Args.Slot(new VarString("ref@%var(memory/idx)"), 1)
-                        ))
+                        Args.of(
+                                new VarVariable(placeholderVariable, VarVariable.Scope.LINE),
+                                new VarString("ref@%var(memory/idx)")
+                        )
                 )
         );
     }
@@ -51,81 +48,47 @@ public class CodeHelper {
     public static TemplateBlock setReturnValue(VarItem varItem) {
         return new SetVarAction(
                 "=",
-                new Args(List.of(
-                        new Args.Slot(new VarVariable("returned", VarVariable.Scope.LINE), 0),
-                        new Args.Slot(varItem, 1)
-                ))
+                Args.of(
+                        new VarVariable("returned", VarVariable.Scope.LINE),
+                        varItem
+                )
         );
     }
 
-    public static Args parametersToArgs(List<VarItem> parameters) {
-        return new Args(IntStream.range(0, parameters.size())
-                .mapToObj(idx -> new Args.Slot(parameters.get(idx), idx))
-                .toList());
-    }
+
 
     public static TemplateBlock callFunction(String name, List<VarItem> parameters) {
         if(!name.contains(")V")) {
+            var args = Args.ofSlots(
+                    IntStream.range(1, parameters.size()+1)
+                            .mapToObj(idx -> new Args.Slot(parameters.get(idx-1), idx))
+                            .toList());
+            args.insert(new VarVariable("returned", VarVariable.Scope.LINE), 0);
             return new CallFunctionAction(
                     name,
-                    new Args(
-                            Stream.concat(
-                                    IntStream.range(1, parameters.size()+1)
-                                            .mapToObj(idx -> new Args.Slot(parameters.get(idx-1), idx)),
-                                    Stream.of(new Args.Slot(new VarVariable("returned", VarVariable.Scope.LINE), 0))
-                            )
-                                    .toList()
-                    )
+                    args
             );
         } else {
             return new CallFunctionAction(
                     name,
-                    parametersToArgs(parameters)
+                    Args.ofVarItems(parameters)
             );
         }
     }
 
     public static TemplateBlock beginFunction(String name, List<VarParameter> parameters, String hiddenValue) {
+        var args = Args.ofSlots(
+                        IntStream.range(1, parameters.size()+1)
+                                .mapToObj(idx -> new Args.Slot(parameters.get(idx-1), idx))
+                                .toList());
+        args.set(new VarBlockTag(hiddenValue, "Is Hidden", "dynamic", "func"), 26);
         if(!name.contains(")V")) {
-            return new FunctionAction(
-                    name,
-                    new Args(
-                            Stream.concat(
-                                            IntStream.range(1, parameters.size()+1)
-                                                    .mapToObj(idx -> new Args.Slot(parameters.get(idx-1), idx)),
-                                            Stream.of(
-                                                    new Args.Slot(new VarParameter("returned", "var", false, false), 0),
-                                                    new Args.Slot(
-                                                            new VarBlockTag(
-                                                                    hiddenValue,
-                                                                    "Is Hidden",
-                                                                    "dynamic",
-                                                                    "func"
-                                                            ),
-                                                            26
-                                                    )
-                                            )
-                                    )
-                                    .toList()
-                    )
-            );
-        } else {
-            return new FunctionAction(
-                    name,
-                    new Args(
-                            Stream.concat(
-                                    IntStream.range(0, parameters.size())
-                                            .mapToObj(idx -> new Args.Slot(parameters.get(idx), idx)),
-                                    Stream.of(new Args.Slot(
-                                            new VarBlockTag(
-                                                    hiddenValue,
-                                                    "Is Hidden",
-                                                    "dynamic",
-                                                    "func"
-                                            ), 26))).toList()
-                    )
-            );
+            args.insert(new VarParameter("returned", "var", false, false), 0);
         }
+        return new FunctionAction(
+                name,
+                args
+        );
     }
 
     public static boolean templateIsLoaded(CodeTemplateData templateData, ClassData classData) {

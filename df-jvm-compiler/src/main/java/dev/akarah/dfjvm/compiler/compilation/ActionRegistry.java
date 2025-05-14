@@ -28,10 +28,10 @@ public class ActionRegistry {
         return this.with("java/lang/Object#toString()Ljava/lang/String;", locals -> List.of(
             new SetVarAction(
                     "String",
-                    new Args(List.of(
-                            new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                            new Args.Slot(locals.getFirst(), 1)
-                    ))
+                    Args.of(
+                            new VarVariable("tmp", VarVariable.Scope.LINE),
+                            locals.getFirst()
+                    )
             ),
             CodeHelper.setReturnValue(new VarVariable("tmp", VarVariable.Scope.LINE))
         ));
@@ -85,16 +85,16 @@ public class ActionRegistry {
         return List.of(
                 new SetVarAction(
                         "=",
-                        new Args(List.of(
-                                new Args.Slot(new VarVariable("tmp.player_name", VarVariable.Scope.LINE), 0),
-                                new Args.Slot(locals.getFirst(), 1)
-                        ))
+                        Args.of(
+                                new VarVariable("tmp.player_name", VarVariable.Scope.LINE),
+                                locals.getFirst()
+                        )
                 ),
                 new SelectObjectAction(
                         "PlayerName",
-                        new Args(List.of(
-                                new Args.Slot(new VarString("%var(memory/%var(tmp.player_name).player)"), 0)
-                        ))
+                        Args.of(
+                                new VarString("%var(memory/%var(tmp.player_name).player)")
+                        )
                 ),
                 new PlayerAction(
                         action,
@@ -103,12 +103,12 @@ public class ActionRegistry {
                 ),
                 new SelectObjectAction(
                         "Reset",
-                        new Args(List.of())
+                        Args.empty()
                 )
         );
     }
 
     public static List<TemplateBlock> runForPlayer(String action, List<VarItem> parameters, List<VarItem> locals) {
-        return runForPlayer(action, CodeHelper.parametersToArgs(parameters), locals);
+        return runForPlayer(action, Args.ofVarItems(parameters), locals);
     }
 }

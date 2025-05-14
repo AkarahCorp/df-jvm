@@ -81,9 +81,9 @@ public class ClassCompiler {
             var list = new ArrayList<>(out);
             list.add(new ControlAction(
                     "Comment",
-                    new Args(List.of(
-                        new Args.Slot(new VarString(instruction.toString()), 0)
-                    ))
+                    Args.of(
+                        new VarString(instruction.toString())
+                    )
             ));
             return list;
         } else {
@@ -121,18 +121,12 @@ public class ClassCompiler {
 
                 var blockAdded = true;
                 switch (branchInstruction.opcode()) {
-                    case IF_ICMPEQ, IF_ACMPEQ, IFNULL, IFEQ -> blocks.add(new IfVarAction("=",
-                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
-                    case IF_ICMPNE, IF_ACMPNE, IFNONNULL, IFNE -> blocks.add(new IfVarAction("!=",
-                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
-                    case IF_ICMPLT, IFLT -> blocks.add(new IfVarAction("<",
-                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
-                    case IF_ICMPGT, IFGT -> blocks.add(new IfVarAction(">",
-                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
-                    case IF_ICMPLE, IFLE -> blocks.add(new IfVarAction("<=",
-                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
-                    case IF_ICMPGE, IFGE -> blocks.add(new IfVarAction(">=",
-                            new Args(List.of(new Args.Slot(value1, 0), new Args.Slot(value2, 1)))));
+                    case IF_ICMPEQ, IF_ACMPEQ, IFNULL, IFEQ -> blocks.add(new IfVarAction("=", Args.of(value1, value2)));
+                    case IF_ICMPNE, IF_ACMPNE, IFNONNULL, IFNE -> blocks.add(new IfVarAction("!=", Args.of(value1, value2)));
+                    case IF_ICMPLT, IFLT -> blocks.add(new IfVarAction("<", Args.of(value1, value2)));
+                    case IF_ICMPGT, IFGT -> blocks.add(new IfVarAction(">", Args.of(value1, value2)));
+                    case IF_ICMPLE, IFLE -> blocks.add(new IfVarAction("<=", Args.of(value1, value2)));
+                    case IF_ICMPGE, IFGE -> blocks.add(new IfVarAction(">=", Args.of(value1, value2)));
                     case GOTO, GOTO_W -> blockAdded = false;
                     default -> throw new RuntimeException("unknown opcode " + branchInstruction.opcode());
                 }
@@ -143,7 +137,7 @@ public class ClassCompiler {
                 var targetLabel = branchInstruction.target();
                 var name = point.functionName(point.labelToBci(targetLabel));
                 blocks.add(CodeHelper.callFunction(name, point.getAllLocals().map(x -> (VarItem) x).toList()));
-                blocks.add(new ControlAction("Return", new Args(List.of())));
+                blocks.add(new ControlAction("Return", Args.empty()));
 
                 if(blockAdded)
                     blocks.add(new Bracket(Bracket.Direction.CLOSE, Bracket.Type.NORMAL));
@@ -168,10 +162,10 @@ public class ClassCompiler {
                     yield List.of(
                             new SetVarAction(
                                     "=",
-                                    new Args(List.of(
-                                            new Args.Slot(new VarVariable("memory/%var(" + objectRef.name() + ")." + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME), 0),
-                                            new Args.Slot(newValue, 2)
-                                    ))
+                                    Args.of(
+                                            new VarVariable("memory/%var(" + objectRef.name() + ")." + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME),
+                                            newValue
+                                    )
                             )
                     );
                 }
@@ -184,16 +178,14 @@ public class ClassCompiler {
                 case PUTSTATIC -> List.of(
                         new SetVarAction(
                                 "=",
-                                new Args(List.of(
-                                        new Args.Slot(
-                                                new VarVariable(
-                                                        "static/"
-                                                                + fieldInstruction.field().owner().asInternalName()
-                                                                + "#" + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME),
-                                                0
+                                Args.of(
+                                        new VarVariable(
+                                            "static/"
+                                                    + fieldInstruction.field().owner().asInternalName()
+                                                    + "#" + fieldInstruction.field().name().stringValue(), VarVariable.Scope.GAME
                                         ),
-                                        new Args.Slot(stackInfo.popStack(), 1)
-                                ))
+                                        stackInfo.popStack()
+                                )
                         )
                 );
                 default -> throw new RuntimeException("uh not supported " + fieldInstruction.opcode() + " byebye");
@@ -269,12 +261,12 @@ public class ClassCompiler {
             case ReturnInstruction _ -> List.of(
                     new SetVarAction(
                             "=",
-                            new Args(List.of(
-                                    new Args.Slot(new VarVariable("returned", VarVariable.Scope.LINE), 0),
-                                    new Args.Slot(stackInfo.popStack(), 1)
-                            ))
+                            Args.of(
+                                    new VarVariable("returned", VarVariable.Scope.LINE),
+                                    stackInfo.popStack()
+                            )
                     ),
-                    new ControlAction("Return", new Args(List.of()))
+                    new ControlAction("Return", Args.empty())
             );
             case StoreInstruction storeInstruction -> List.of(
                     CodeHelper.setLocal(storeInstruction.slot(), stackInfo.popStack())
@@ -282,21 +274,21 @@ public class ClassCompiler {
             case IncrementInstruction incrementInstruction -> List.of(
                     new SetVarAction(
                             "+=",
-                            new Args(List.of(
-                                    new Args.Slot(new VarVariable("local." + incrementInstruction.slot(), VarVariable.Scope.LINE), 0),
-                                    new Args.Slot(new VarNumber(String.valueOf(incrementInstruction.constant())), 1)
-                            ))
+                            Args.of(
+                                    new VarVariable("local." + incrementInstruction.slot(), VarVariable.Scope.LINE),
+                                    new VarNumber(String.valueOf(incrementInstruction.constant()))
+                            )
                     )
             );
             case OperatorInstruction operatorInstruction -> {
                 Function<String, List<TemplateBlock>> binaryOp = action -> List.of(
                         new SetVarAction(
                                 action,
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(stackInfo.popStack(), 1),
-                                        new Args.Slot(stackInfo.popStack(), 2)
-                                ))
+                                Args.of(
+                                        new VarVariable("tmp", VarVariable.Scope.LINE),
+                                        stackInfo.popStack(),
+                                        stackInfo.popStack()
+                                )
                         ),
                         stackInfo.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE))
                 );
@@ -314,10 +306,10 @@ public class ClassCompiler {
                 case DUP -> List.of(
                         new SetVarAction(
                                 "=",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("tmp", VarVariable.Scope.LINE), 0),
-                                        new Args.Slot(stackInfo.popStack(), 1)
-                                ))
+                                Args.of(
+                                        new VarVariable("tmp", VarVariable.Scope.LINE),
+                                        stackInfo.popStack()
+                                )
                         ),
                         stackInfo.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE)),
                         stackInfo.pushStack(new VarVariable("tmp", VarVariable.Scope.LINE))
@@ -346,10 +338,10 @@ public class ClassCompiler {
                 yield List.of(
                         new SetVarAction(
                                 "=",
-                                new Args(List.of(
-                                        new Args.Slot(new VarVariable("memory/%var(" +  arrayRef.name() + ")[%var(" + index.name() + ")]", VarVariable.Scope.GAME), 0),
-                                        new Args.Slot(value, 1)
-                                ))
+                                Args.of(
+                                        new VarVariable("memory/%var(" +  arrayRef.name() + ")[%var(" + index.name() + ")]", VarVariable.Scope.GAME),
+                                        value
+                                )
                         )
                 );
             }
