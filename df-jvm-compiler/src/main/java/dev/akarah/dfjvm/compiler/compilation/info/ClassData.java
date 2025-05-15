@@ -42,6 +42,7 @@ public class ClassData {
     public Set<String> findAssociatedClasses(String clazz) {
         var associatedClasses = new HashSet<String>();
         associatedClasses.add(clazz);
+
         var classModel = this.classModels.get(clazz);
         if(classModel == null) {
             return Set.of();

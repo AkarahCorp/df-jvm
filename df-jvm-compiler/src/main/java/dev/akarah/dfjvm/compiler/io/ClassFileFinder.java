@@ -1,5 +1,6 @@
 package dev.akarah.dfjvm.compiler.io;
 
+import dev.akarah.codetemplate.Main;
 import dev.akarah.codetemplate.template.GzippedCodeTemplateData;
 
 import java.io.IOException;

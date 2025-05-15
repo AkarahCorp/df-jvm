@@ -112,6 +112,11 @@ public class ClassCompiler {
                     generatePrimitiveArray(newPrimitiveArrayInstruction, point, stackInfo);
             case ArrayLoadInstruction arrayLoadInstruction -> generateArrayLoad(arrayLoadInstruction, point, stackInfo);
             case ArrayStoreInstruction arrayStoreInstruction -> generateArrayStore(arrayStoreInstruction, point, stackInfo);
+            case ConvertInstruction convertInstruction -> List.of();
+            case InvokeDynamicInstruction invokeDynamicInstruction -> {
+                System.out.println("warning: InvokeDynamic is being skipped. only continue with build if you are confident it is OK");
+                yield List.of();
+            }
             default -> throw new RuntimeException("unknwon instruction " + instruction);
         };
     }
